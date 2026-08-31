@@ -142,8 +142,11 @@ code up to date. This is the running summary - full detail is in git history and
   reflecting that real floor. README.md rewritten to match (correct login/init flow, dropped the
   `docker-compose pull` instruction since there's nothing to pull for this fork, documented the
   Security Audit limitation). `contribs/bert-summary` and `contribs/yake` (standalone, optional,
-  not wired into root compose) were left alone rather than deleted — flagged for a decision, not
-  obviously-orphaned deadwood (`bd show seo-audits-toolkit-e5c`).
+  never wired into root compose) were initially left alone rather than deleted outright — flagged
+  for a decision instead of treated as obviously-orphaned deadwood. User confirmed both were
+  redundant (bert-summary wrapped the same old bert-extractive-summarizer library just replaced in
+  `server/bert`; yake wrapped the same `yake` library `server/keywords` already runs in-process) and
+  both were removed (`bd show seo-audits-toolkit-e5c`, closed).
 
 ## Build & Test
 
