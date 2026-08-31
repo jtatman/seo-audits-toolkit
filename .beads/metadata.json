@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "seo_audits_toolkit",
+  "project_id": "be61337b-17be-4d61-b3da-2f5125785f84"
+}
