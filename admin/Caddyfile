@@ -1,7 +1,22 @@
 :80
 
 root * /opt/osat/www
-file_server 
+
+# Proxy API calls to the server container over the internal Docker network,
+# using its fixed internal port (8000) rather than whatever host port
+# `server` happens to be published on (docker-compose.yml maps that to a
+# different host port to dodge local conflicts) - the browser never needs
+# to know it, it only ever talks to this container's own port.
+handle /api/* {
+	reverse_proxy server:8000
+}
+handle /dj-rest-auth/* {
+	reverse_proxy server:8000
+}
+
+handle {
+	file_server
+}
 
 header Access-Control-Allow-Origin *
 header Access-Control-Allow-Headers *

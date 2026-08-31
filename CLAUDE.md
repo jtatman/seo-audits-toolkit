@@ -150,6 +150,37 @@ code up to date. This is the running summary - full detail is in git history and
   `server/bert`; yake wrapped the same `yake` library `server/keywords` already runs in-process) and
   both were removed (`bd show seo-audits-toolkit-e5c`, closed).
 
+- **Phase 5** (2026-08-31): fixed a real production bug reported by the user — the dashboard loaded
+  to react-admin's own error boundary ("Something went wrong / A client error occurred") on every
+  visit, even though the API was directly reachable. Root-caused via a jsdom/Vitest reproduction
+  (no live browser available in this sandbox) rather than the browser itself: `react-admin`
+  resolved its own **nested, duplicate copy of `@mui/material` (v9.4.0)**, separate from the app's
+  top-level pin (v6.5.0), because yarn classic doesn't dedupe across differently-formatted (if
+  semver-overlapping) range strings in the lockfile. `MenuItemLink`'s internally-rendered MUI
+  `MenuItem` therefore read a `MenuListContext` object from a different physical module instance
+  than any `MenuList`/`Menu` the app rendered — "MUI: MenuListContext is missing" even though the
+  component tree was structurally correct. Fixed by pinning `@mui/material`/`@mui/system`/
+  `@mui/utils`/`@mui/icons-material` via a `resolutions` block in `admin/package.json`, forcing a
+  single deduped copy tree-wide. (`admin/src/layout/Menu.jsx`'s `<Box>`→`<MenuList>` root-wrapper
+  fix, made first, was necessary but not sufficient on its own — worth keeping regardless, since
+  react-admin's own default `<Menu>` uses the same pattern.) Also fixed the frontend hardcoding
+  `http://localhost:8000` in `App.jsx`'s dataProvider and `authProvider.js`'s login request — broke
+  the moment `server`'s host-published port didn't match (exactly the user's case: remapped to 8001
+  locally to dodge an unrelated container already on 8000). Real fix: `admin/Caddyfile` now reverse-
+  proxies `/api/*` and `/dj-rest-auth/*` to `server:8000` over the internal Docker network (fixed
+  internal port, unaffected by the host-side remap); the frontend calls relative same-origin paths
+  by default (`admin/src/config.js`'s `API_URL`, empty unless `VITE_API_URL` is set), with a
+  matching Vite dev-server proxy for `yarn start` outside Docker. Added a permanent regression test
+  (`admin/src/App.test.jsx`) that renders the full `<App/>` → `Layout` → `Sidebar` → `Menu` chain —
+  the gap that let this ship in the first place: Phase 3's 10 smoke tests only rendered isolated
+  `List` components via `AdminContext`, never the real app shell, and Phase 3's own `App.test.js`
+  had explicitly punted on a full-app render as "too fragile" (see git history for that comment) —
+  in retrospect the wrong call, since it's exactly reproducible in jsdom and exactly where the bug
+  was. Verified end-to-end against this sandbox's actual running stack (`osat-server` on host port
+  8001, matching the user's setup): rebuilt `dashboard`, confirmed `curl localhost:3000/api/...` and
+  `curl localhost:3000/dj-rest-auth/login/` proxy through to the server with identical responses to
+  hitting `localhost:8001` directly, and a real login through the proxy returns a valid token.
+
 ## Build & Test
 
 ```bash

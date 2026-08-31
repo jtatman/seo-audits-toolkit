@@ -5,6 +5,14 @@ export default defineConfig({
     plugins: [react()],
     server: {
         port: 3000,
+        // Mirrors the Caddyfile's reverse proxy for `yarn start` outside
+        // Docker (no Caddy in front) - same default port compose
+        // publishes `server` on. Override via VITE_API_URL if that's
+        // remapped locally, same as the production build.
+        proxy: {
+            '/api': 'http://localhost:8000',
+            '/dj-rest-auth': 'http://localhost:8000',
+        },
     },
     build: {
         outDir: 'build',
@@ -35,5 +43,17 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         setupFiles: ['./src/setupTests.js'],
+        // ra-ui-materialui's compiled output does `import ... from
+        // '@mui/material/styles'` (a directory import, no explicit
+        // index.js/exports map entry). Vite's real dev/build pipeline
+        // resolves that fine via esbuild/rollup, but Vitest's default SSR
+        // module runner uses Node's strict ESM resolver for externalized
+        // deps, which rejects bare directory imports. Inlining these deps
+        // routes them through Vite's transform pipeline instead.
+        server: {
+            deps: {
+                inline: [/@mui\//, /ra-ui-materialui/, /react-admin/],
+            },
+        },
     },
 });

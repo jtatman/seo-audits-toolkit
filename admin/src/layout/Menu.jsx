@@ -1,4 +1,4 @@
-import { Box, useMediaQuery } from '@mui/material';
+import { MenuList, useMediaQuery } from '@mui/material';
 import DomainIcon from '@mui/icons-material/Domain';
 import HighlightIcon from '@mui/icons-material/Highlight';
 import LanguageIcon from '@mui/icons-material/Language';
@@ -33,8 +33,11 @@ const Menu = ({ onMenuClick, logout, dense = false }) => {
     };
 
     return (
-        <Box mt={1}>
-            {' '}
+        // react-admin v5's MenuItemLink renders an MUI MenuItem internally,
+        // which throws ("MenuListContext is missing") unless it's inside an
+        // MUI MenuList (or Menu) ancestor - react-admin's own default <Menu>
+        // wraps its children in MenuList for exactly this reason.
+        <MenuList sx={{ mt: 1 }}>
             <DashboardMenuItem onClick={onMenuClick} sidebarIsOpen={open} />
             <SubMenu
                 handleToggle={() => handleToggle('menuOrgs')}
@@ -148,7 +151,7 @@ const Menu = ({ onMenuClick, logout, dense = false }) => {
             </SubMenu>
             
             {isXSmall && logout}
-        </Box>
+        </MenuList>
     );
 };
 

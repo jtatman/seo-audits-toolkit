@@ -1,14 +1,27 @@
+import { render, screen } from '@testing-library/react';
 import App from './App';
 
-// The previous version of this test asserted 'renders learn react link' -
-// unmodified create-react-app boilerplate that never matched this app and
-// always failed. A full <App /> render needs this app's custom Layout/theme
-// wiring stood up (auth state, data provider, MUI theme threaded through a
-// custom Sidebar/AppBar) - too fragile to reproduce in isolation and not
-// worth it for a stack about to be replaced (see zr2.2). Each resource's
-// List component has its own render smoke test instead (see
-// src/<resource>/*.test.js), which is the part that actually matters for
-// catching breakage during the react-admin/MUI major bump.
 test('App module imports without throwing', () => {
   expect(App).toBeDefined();
+});
+
+// Regression test for a real production bug: react-admin v5's
+// MenuItemLink/DashboardMenuItem render MUI's MenuItem internally, which
+// throws ("MenuListContext is missing") unless it sits inside an MUI
+// MenuList/Menu ancestor. Our custom layout/Menu.jsx used to wrap its
+// children in a plain <Box>, which crashed react-admin's error boundary
+// into "Something went wrong" on every load. None of the per-resource List
+// smoke tests caught this because they render a resource in isolation
+// (AdminContext + a bare List), never the full App -> Layout -> Sidebar ->
+// Menu chain where the bug actually lived. This test renders that full
+// chain so a regression here fails loudly instead of shipping silently.
+test('App renders the full layout without crashing (clean localStorage)', async () => {
+    window.localStorage.clear();
+    render(<App />);
+
+    // "Something went wrong" is react-admin's own error-boundary fallback
+    // text - if a child component throws during render, this is what a
+    // real user sees instead of the app.
+    expect(await screen.findByText(/dashboard/i)).toBeInTheDocument();
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
 });
