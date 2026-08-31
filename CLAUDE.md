@@ -128,9 +128,12 @@ code up to date. This is the running summary - full detail is in git history and
   `.get()` with an `"N/A"` fallback). Also found and fixed a real **shell-injection vulnerability**
   in both `security/tasks.py` and `lighthouse/tasks.py` — user-supplied `url` was concatenated into
   a `shell=True` subprocess string (arbitrary command execution, gated only by being any logged-in
-  user); fixed via `subprocess.run([...])` argument lists. `security`'s actual scan feature remains
-  non-functional — it depends on Mozilla's original HTTP Observatory API, which now returns 502 for
-  every request and appears discontinued upstream (`bd show seo-audits-toolkit-7nm`). Replaced the
+  user); fixed via `subprocess.run([...])` argument lists. `security`'s scan backend
+  (`httpobs-cli`, calling Mozilla's original HTTP Observatory API — discontinued 2024-10-31, hence
+  the 502s) was replaced with `@mdn/mdn-http-observatory`'s self-hosted CLI, MDN's actively
+  maintained successor — runs entirely locally now, no third-party API call at all
+  (`bd show seo-audits-toolkit-7nm`, closed same day). Also dropped `ssh-audit` from
+  requirements.txt/Pipfile — pinned but never actually imported anywhere in app code. Replaced the
   broken `init_data.json` onboarding fixture (hardcoded ContentType/Permission PKs, silently broken
   by Phase 2's migration-history changes) with an idempotent `manage.py seed_demo_data` command.
   Removed dead weight: `.docker/alpine/*` (zero references anywhere, leftover from a much older
@@ -140,8 +143,7 @@ code up to date. This is the running summary - full detail is in git history and
   its own chunk (~530kB), but react-admin's UI layer imports MUI directly so splitting *that* out
   too produces a circular chunk; settled on the MUI-only split plus a 750kB warning threshold
   reflecting that real floor. README.md rewritten to match (correct login/init flow, dropped the
-  `docker-compose pull` instruction since there's nothing to pull for this fork, documented the
-  Security Audit limitation). `contribs/bert-summary` and `contribs/yake` (standalone, optional,
+  `docker-compose pull` instruction since there's nothing to pull for this fork). `contribs/bert-summary` and `contribs/yake` (standalone, optional,
   never wired into root compose) were initially left alone rather than deleted outright — flagged
   for a decision instead of treated as obviously-orphaned deadwood. User confirmed both were
   redundant (bert-summary wrapped the same old bert-extractive-summarizer library just replaced in

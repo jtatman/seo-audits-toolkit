@@ -26,7 +26,7 @@ I've grown tired of SEO agencies making us pay hundreds of euros for simple tool
 - **Sitemap Extractor** - Extract all the urls of a website from its sitemap
 - **Internal Links Graph** - Crawl a site and visualize how its pages link to each other
 - **Summarizer** - Summarize any text from any length. Awesome for excerpt !
-- **Security Audit** - Audit Headers, Redirect, etc to make sure your website is secure. ⚠️ Currently broken upstream - see [Known limitations](#known-limitations).
+- **Security Audit** - Audit Headers, Redirect, etc to make sure your website is secure, powered by [MDN's HTTP Observatory](https://developer.mozilla.org/en-US/observatory).
 
 ## Demo
 
@@ -95,16 +95,6 @@ project, scoping what a user can see to their own org(s). Quick link:
 
 Go to `Organizations -> Organizations Users` and add your users to the
 organization you want. [http://localhost:8000/admin/organizations/organizationuser/](http://localhost:8000/admin/organizations/organizationuser/)
-
-## Known limitations
-
-- **Security Audit** relies on Mozilla's original HTTP Observatory API
-  (`http-observatory.security.mozilla.org`), which currently returns `502`
-  for every request - it appears to have been discontinued upstream. Every
-  other feature (extractor, sitemap, internal links, keywords, summarizer,
-  Lighthouse) has been verified working end to end against the current
-  stack. Replacing the security-scan backend is tracked as a follow-up (see
-  `CLAUDE.md`).
 
 ## Useful Links
 

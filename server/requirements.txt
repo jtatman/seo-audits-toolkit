@@ -26,7 +26,6 @@ drf-nested-routers==0.95.3
 filelock==3.32.4
 fsspec==2026.7.0
 hf-xet==1.6.0
-httpobs-cli==1.0.2
 huggingface-hub==1.29.0
 idna==3.19
 inscriptis==2.7.4
@@ -62,7 +61,6 @@ segtok==1.5.11
 six==1.17.0
 soupsieve==2.9.2
 sqlparse==0.6.0
-ssh-audit==3.9.0
 sympy==1.14.0
 tabulate==0.10.0
 threadpoolctl==3.6.0

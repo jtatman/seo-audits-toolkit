@@ -1,5 +1,6 @@
 import json
 import subprocess
+import urllib.parse
 
 import pytz
 import time
@@ -37,31 +38,46 @@ def security_add_new_url_crawler(url):
 
 
 def run_security(url):
+    # httpobs-cli called Mozilla's original HTTP Observatory API, shut down
+    # 2024-10-31. Replaced with @mdn/mdn-http-observatory's self-hosted CLI -
+    # actively maintained, runs entirely locally, no third-party API call
+    # (and therefore no more "the whole feature is down because someone
+    # else's server is down" failure mode).
+    #
     # subprocess.run with an argument list (no shell=True) - url is
     # user-supplied and must never be interpolated into a shell command
     # string, which would let a crafted url run arbitrary shell commands.
-    proc = subprocess.run(["httpobs-cli", "-d", url], stdout=subprocess.PIPE)
-    result = proc.stdout.decode("utf-8")
-    result = json.loads(result)
+    hostname = urllib.parse.urlparse(url).netloc or url
+    proc = subprocess.run(["mdn-http-observatory-scan", hostname], stdout=subprocess.PIPE)
+    result = json.loads(proc.stdout.decode("utf-8"))
+
+    if result["scan"]["error"]:
+        raise RuntimeError(f"mdn-http-observatory-scan failed for {hostname}: {result['scan']['error']}")
+
     computed = {}
     computed["score"] = result["scan"]["score"]
     computed["grade"] = result["scan"]["grade"]
-    computed["status_code"] = result["scan"]["status_code"]
-    computed["tests_failed"] = result["scan"]["tests_failed"]
-    computed["tests_passed"] = result["scan"]["tests_passed"]
-    computed["tests_quantity"] = result["scan"]["tests_quantity"]
-    
+    computed["status_code"] = result["scan"]["statusCode"]
+    computed["tests_failed"] = result["scan"]["testsFailed"]
+    computed["tests_passed"] = result["scan"]["testsPassed"]
+    computed["tests_quantity"] = result["scan"]["testsQuantity"]
+
     response_headers = []
-    for headers in result["scan"]["response_headers"]:
-        response_headers.append({"name": headers, "value": result["scan"]["response_headers"][headers]})
+    for name, value in result["scan"]["responseHeaders"].items():
+        response_headers.append({"name": name, "value": value})
     computed["response_headers"] = response_headers
-    
+
     tests = []
-    for test in result["tests"]:
-        tests.append({"name": result["tests"][test]["name"],
-                       "pass": result["tests"][test]["pass"],
-                       "result": result["tests"][test]["result"],
-                       "expectation": result["tests"][test]["expectation"],
-                       "score_description": result["tests"][test]["score_description"], })
+    for name, test in result["tests"].items():
+        tests.append({
+            "name": name,
+            "pass": test["pass"],
+            "result": test["result"],
+            "expectation": test["expectation"],
+            # the new tool reports a numeric score impact rather than the
+            # old tool's text description - fold both into one string so
+            # the frontend's existing score_description field keeps working
+            "score_description": f"{test['result']} ({test['scoreModifier']:+d})",
+        })
     computed["tests"] = tests
     return json.dumps(computed)

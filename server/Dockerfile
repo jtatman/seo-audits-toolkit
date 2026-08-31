@@ -10,7 +10,7 @@ RUN python3 -m pip install --upgrade pip
 
 # Install Nodejs and yarn
 RUN rm -rf /var/lib/apt/lists/*
-RUN curl -sL https://deb.nodesource.com/setup_22.x > node_install.sh
+RUN curl -sL https://deb.nodesource.com/setup_24.x > node_install.sh
 RUN chmod +x ./node_install.sh
 RUN ./node_install.sh
 RUN apt-get update
@@ -22,6 +22,9 @@ RUN npm install -g yarn
 RUN apt install -y chromium
 # Install Lighthouse
 RUN yarn global add lighthouse
+# Install the HTTP Observatory security-header scanner (self-hosted CLI -
+# httpobs-cli/Mozilla's old hosted API it called was shut down 2024-10-31)
+RUN yarn global add @mdn/mdn-http-observatory
 
 # Install Pipenv
 RUN pip3 install pipenv

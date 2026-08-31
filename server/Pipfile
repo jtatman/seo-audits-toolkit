@@ -54,7 +54,6 @@ bokeh = "==3.10.0"
 pandas = "==3.0.5"
 transformers = "==5.16.1"
 torch = "==2.13.0+cpu"
-httpobs-cli = "==1.0.2"
 
 [dev-packages]
 
