@@ -12,7 +12,7 @@ export const BertList = (props) => (
       <TextField source="status_job"  label="Result" />
       <DateField source="begin_date"  label="Date"/>
       <ShowButton />
-      <DeleteButton undoable={true} />
+      <DeleteButton />
     </Datagrid>
   </List>
 );

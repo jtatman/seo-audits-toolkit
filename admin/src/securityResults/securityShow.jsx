@@ -1,7 +1,6 @@
 import * as React from "react";
 import { DeleteButton,ArrayField,Datagrid,UrlField,BooleanField, EditButton, Show, SimpleShowLayout, TextField } from 'react-admin';
 import MyUrlField from '../custom/fields/urlField';
-import { green } from '@material-ui/core/colors';
 
 
 

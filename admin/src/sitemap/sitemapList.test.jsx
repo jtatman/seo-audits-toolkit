@@ -1,9 +1,9 @@
-import { ExtractorList } from './index';
+import { SitemapList } from './index';
 import { renderResourceComponent, waitForListToRender } from '../testUtils';
 
-test('ExtractorList renders without crashing', async () => {
+test('SitemapList renders without crashing', async () => {
   const { container } = renderResourceComponent(
-    <ExtractorList resource="extractor" basePath="/extractor" />
+    <SitemapList resource="sitemap" />
   );
   await waitForListToRender(container);
 });

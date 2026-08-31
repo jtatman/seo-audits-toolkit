@@ -1,9 +1,9 @@
-import { LighthouseList } from './index';
+import { YakeList } from './index';
 import { renderResourceComponent, waitForListToRender } from '../testUtils';
 
-test('LighthouseList renders without crashing', async () => {
+test('YakeList renders without crashing', async () => {
   const { container } = renderResourceComponent(
-    <LighthouseList resource="lighthouse" basePath="/lighthouse" />
+    <YakeList resource="keywords/yake" />
   );
   await waitForListToRender(container);
 });

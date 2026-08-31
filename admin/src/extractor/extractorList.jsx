@@ -16,7 +16,7 @@ export const ExtractorList = (props) => (
       <TextField source="status_job"  label="Type" />
       <DateField source="begin_date"  label="Date"/>
       <ShowButton />
-      <DeleteButton undoable={true} />
+      <DeleteButton />
     </Datagrid>
   </List>
 );

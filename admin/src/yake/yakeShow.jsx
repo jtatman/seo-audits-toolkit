@@ -1,6 +1,5 @@
 import * as React from "react";
-import { ArrayField, Datagrid, DeleteButton, EditButton, Show, SimpleShowLayout, TextField, IntegerField } from 'react-admin';
-import { DataGrid } from '@material-ui/data-grid';
+import { ArrayField, Datagrid, DeleteButton, EditButton, Show, SimpleShowLayout, TextField } from 'react-admin';
 
 
 

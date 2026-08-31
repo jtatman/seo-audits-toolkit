@@ -11,7 +11,7 @@ export const SitemapList = (props) => (
       <TextField source="status_job"  label="Type" />
       <DateField source="begin_date"  label="Date" showTime={true}/>
       <ShowButton />
-      <DeleteButton undoable={true} />
+      <DeleteButton />
     </Datagrid>
   </List>
 );

@@ -1,9 +1,11 @@
 import * as React from "react";
-import { SimpleShowLayout, Show, TextField } from 'react-admin';
-import { Table, TableBody, TableRow, TableCell, TableHead } from '@material-ui/core';
+import { SimpleShowLayout, Show, TextField, useRecordContext } from 'react-admin';
+import { Table, TableBody, TableRow, TableCell, TableHead } from '@mui/material';
 
 
-const TagsField = ({ record }) => {
+const TagsField = () => {
+    const record = useRecordContext();
+    if (!record) return null;
 
     if (record.type_audit == "HEADERS") {
         const results = JSON.parse(record.result.replaceAll("'", '"'))

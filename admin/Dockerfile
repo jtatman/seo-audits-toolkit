@@ -13,10 +13,6 @@ RUN yarn install --network-timeout 1000000000
 # Copy source files
 COPY . .
 
-# react-scripts 4 (webpack 4) calls Node's crypto.createHash('md4'), which
-# OpenSSL 3 (Node >=17) rejects by default - react-scripts is unmaintained
-# and won't fix this, so opt back into the legacy provider for the build step
-ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN yarn build
 
 FROM caddy:2-alpine AS runtime

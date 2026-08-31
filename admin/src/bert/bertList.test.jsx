@@ -1,9 +1,9 @@
-import { WebsiteList } from './index';
+import { BertList } from './index';
 import { renderResourceComponent, waitForListToRender } from '../testUtils';
 
-test('WebsiteList renders without crashing', async () => {
+test('BertList renders without crashing', async () => {
   const { container } = renderResourceComponent(
-    <WebsiteList resource="website_user" basePath="/website_user" />
+    <BertList resource="summarize" />
   );
   await waitForListToRender(container);
 });

@@ -1,9 +1,10 @@
 import drfProvider from 'ra-data-django-rest-framework';
 import React from 'react';
-import { Admin, EditGuesser, fetchUtils, ListGuesser, Resource} from 'react-admin';
+import { Admin, fetchUtils, Resource} from 'react-admin';
 import authProviderDjango from './authProvider';
 import { ExtractorCreate, ExtractorList, ExtractorShow, ExtractorEdit } from './extractor';
 import { Layout } from './layout';
+import { darkTheme, lightTheme } from './layout/theme';
 import { LighthouseCreate, LighthouseList, LighthouseShow, LighthouseEdit } from './lighthouse';
 import {  LighthouseResultsList, LighthouseResultsShow } from './lighthouseResults';
 import { WebsiteList } from './website';
@@ -26,7 +27,7 @@ const fetchJson = (url, options = {}) => {
 
 
 const App = () => (
-    <Admin layout={Layout} dashboard={Dashboard} authProvider={authProviderDjango} dataProvider={drfProvider('http://localhost:8000/api', fetchJson)}>
+    <Admin layout={Layout} dashboard={Dashboard} authProvider={authProviderDjango} dataProvider={drfProvider('http://localhost:8000/api', fetchJson)} theme={lightTheme} darkTheme={darkTheme}>
         <Resource name="website_user" options={{ label: 'Websites' }}  list={WebsiteList}/>
         <Resource name="extractor" list={ExtractorList} edit={ExtractorEdit} create={ExtractorCreate} show={ExtractorShow}/>
         <Resource name="lighthouse" title="Lighthouse" options={{ title: 'lighthouse', label: 'Lighthouse' }} list={LighthouseList} show={LighthouseShow}  edit={LighthouseEdit} create={LighthouseCreate}/>

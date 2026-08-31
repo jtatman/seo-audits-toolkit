@@ -1,10 +1,10 @@
-import { useMediaQuery } from '@material-ui/core';
+import { useMediaQuery } from '@mui/material';
 import React, {
     useState,
     useEffect,
     useCallback,
 } from 'react';
-import { useDataProvider, useVersion } from 'react-admin';
+import { useDataProvider } from 'react-admin';
 import Welcome from './Welcome';
 
 
@@ -25,7 +25,6 @@ const VerticalSpacer = () => <span style={{ height: '1em' }} />;
 
 export const Dashboard = () => {
     const [state, setState] = useState({});
-    const version = useVersion();
     const dataProvider = useDataProvider();
     const isXSmall = useMediaQuery((theme) =>
         theme.breakpoints.down('xs')
@@ -49,7 +48,8 @@ export const Dashboard = () => {
 
     useEffect(() => {
         fetchLighthouse();
-    }, [version]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return isXSmall ? (
         <div>

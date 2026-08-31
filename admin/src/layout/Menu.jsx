@@ -1,21 +1,20 @@
-import { Box, useMediaQuery } from '@material-ui/core';
-import DomainIcon from '@material-ui/icons/Domain';
-import HighlightIcon from '@material-ui/icons/Highlight';
-import LanguageIcon from '@material-ui/icons/Language';
-import LinkIcon from '@material-ui/icons/Link';
-import PlaylistAddCheckIcon from '@material-ui/icons/PlaylistAddCheck';
-import SupervisorAccountIcon from '@material-ui/icons/SupervisorAccount';
-import VpnKeyIcon from '@material-ui/icons/VpnKey';
-import MyLocationIcon from '@material-ui/icons/MyLocation';
-import MapIcon from '@material-ui/icons/Map';
+import { Box, useMediaQuery } from '@mui/material';
+import DomainIcon from '@mui/icons-material/Domain';
+import HighlightIcon from '@mui/icons-material/Highlight';
+import LanguageIcon from '@mui/icons-material/Language';
+import LinkIcon from '@mui/icons-material/Link';
+import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
+import MapIcon from '@mui/icons-material/Map';
 import * as React from 'react';
 import { useState } from 'react';
-import { DashboardMenuItem, MenuItemLink } from 'react-admin';
-import { useSelector } from 'react-redux';
+import { DashboardMenuItem, MenuItemLink, useSidebarState } from 'react-admin';
 import { SubMenu } from './SubMenu';
-import SecurityIcon from '@material-ui/icons/Security';
-import { green, red, blue, yellow, purple } from '@material-ui/core/colors';
-import CreateIcon from '@material-ui/icons/Create';
+import SecurityIcon from '@mui/icons-material/Security';
+import { green, red, blue, yellow } from '@mui/material/colors';
+import CreateIcon from '@mui/icons-material/Create';
 
 const Menu = ({ onMenuClick, logout, dense = false }) => {
     const [state, setState] = useState({
@@ -27,8 +26,7 @@ const Menu = ({ onMenuClick, logout, dense = false }) => {
     const isXSmall = useMediaQuery((theme) =>
         theme.breakpoints.down('xs')
     );
-    const open = useSelector((state) => state.admin.ui.sidebarOpen);
-    useSelector((state) => state.theme); // force rerender on theme change
+    const [open] = useSidebarState();
 
     const handleToggle = (menu) => {
         setState(state => ({ ...state, [menu]: !state[menu] }));

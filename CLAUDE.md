@@ -99,10 +99,24 @@ code up to date. This is the running summary - full detail is in git history and
   version-research trail and the gotchas hit along the way (apt-key gone on the newer Debian base,
   the packaging>=20.9 floor, etc).
 
-### Planned (tracked in beads)
-- **Phase 3** (`bd show seo-audits-toolkit-zr2`): react-admin v3→v5 and MUI v4→v5 in `admin/`,
-  after adding frontend smoke-test coverage (currently zero — `App.test.js` is unmodified CRA
-  boilerplate).
+- **Phase 3** (`bd show seo-audits-toolkit-zr2`, closed, 2026-08-31): admin frontend fully
+  modernized — react-admin 3.14.1 → 5.15.1, MUI v4 → v6.5.0, React 17 → 19. Added 10 render smoke
+  tests first (zero coverage existed before — `App.test.js` was unmodified CRA boilerplate).
+  Discovered mid-migration that `react-scripts`/CRA itself (unmaintained since ~2023) can't
+  reliably bundle current npm packages using modern `exports` maps (hit this with react-router 7.x
+  and `@mui/utils` 9.x/6.x alike) — migrated the build tooling off `react-scripts` to **Vite 6 +
+  Vitest 3** rather than perpetually downgrading dependencies to dodge an unmaintained bundler.
+  That also meant renaming every `.js` file containing JSX to `.jsx` (Vite doesn't parse JSX in
+  `.js` by default, unlike CRA) and dropped the old webpack4/5 OpenSSL-legacy-provider workaround
+  entirely (Vite's esbuild/Rollup pipeline never touches that code path). Fixed the real
+  react-admin v4/v5 breaking changes along the way: Redux fully removed from core (`useSelector` →
+  `useSidebarState`/`<Admin theme/darkTheme>`), `basePath` prop removed, `DeleteButton`'s
+  `undoable` → `mutationMode` (now defaults to undoable), `useVersion()` removed, custom Field
+  components need `useRecordContext()` instead of prop injection, react-router v6's `Link`
+  `to`/`state` split, MUI v5 theme shape (`overrides` → `components.X.styleOverrides`, `type` →
+  `mode`), `makeStyles` → `sx`. All 10 tests pass, `yarn build` succeeds, verified via Docker build
+  + full stack up + HTTP-level render check (no live browser was available in this sandbox for a
+  visual check). See mnemoria for the full CRA→Vite checklist and the react-admin v5 gotchas.
 
 ## Build & Test
 
@@ -112,9 +126,9 @@ docker compose build server
 docker compose run --rm --entrypoint python server manage.py test      # 24 smoke tests
 docker compose run --rm --entrypoint python server manage.py migrate
 
-# Admin (React/react-admin dashboard)
+# Admin (React/react-admin dashboard, Vite-based)
 docker compose build dashboard
-cd admin && yarn install && NODE_OPTIONS=--openssl-legacy-provider yarn build
+cd admin && yarn install && yarn build   # or `yarn test` (Vitest, 10 smoke tests)
 
 # Full stack
 cp .env-example .env   # fill in SECRET_KEY, POSTGRES_PASSWORD, etc.

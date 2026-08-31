@@ -14,7 +14,4 @@ COPY . .
 # Container configuration
 EXPOSE 3000
 
-# react-scripts 4 (webpack 4) calls Node's crypto.createHash('md4'), which
-# OpenSSL 3 (Node >=17) rejects by default
-ENV NODE_OPTIONS=--openssl-legacy-provider
 CMD ["yarn", "start"]

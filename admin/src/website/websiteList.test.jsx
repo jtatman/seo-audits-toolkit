@@ -1,9 +1,9 @@
-import { YakeList } from './index';
+import { WebsiteList } from './index';
 import { renderResourceComponent, waitForListToRender } from '../testUtils';
 
-test('YakeList renders without crashing', async () => {
+test('WebsiteList renders without crashing', async () => {
   const { container } = renderResourceComponent(
-    <YakeList resource="keywords/yake" basePath="/keywords/yake" />
+    <WebsiteList resource="website_user" />
   );
   await waitForListToRender(container);
 });

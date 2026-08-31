@@ -10,7 +10,7 @@ export const WebsiteList = (props) => (
     <Datagrid>
       <TextField source="name" />
       <MyUrlField source="url" />
-      <DeleteButton undoable={true} />
+      <DeleteButton />
     </Datagrid>
   </List>
 );

@@ -1,18 +1,21 @@
 import * as React from "react";
-import { ArrayField, Link, Datagrid, DateField, DeleteButton, EditButton, Show, SimpleShowLayout, TextField, UrlField } from 'react-admin';
-import Button from '@material-ui/core/Button';
-const CreateRelatedCommentButton = ({record}) => {
+import { ArrayField, useRecordContext, Datagrid, DateField, DeleteButton, EditButton, Show, SimpleShowLayout, TextField, UrlField } from 'react-admin';
+import { Link } from 'react-router-dom';
+import Button from '@mui/material/Button';
+
+const CreateRelatedCommentButton = () => {
+    const record = useRecordContext();
+    if (!record) return null;
     return (
-  <Button
-      component={Link}
-      to={{
-          pathname: '/extractor/create',
-          state: { record: { url: record.url, website_name: record.org } },
-      }}
-  >
-      Extract Headers/Images/Links
-  </Button>
-);}
+        <Button
+            component={Link}
+            to="/extractor/create"
+            state={{ record: { url: record.url, website_name: record.org } }}
+        >
+            Extract Headers/Images/Links
+        </Button>
+    );
+}
 
 
 
