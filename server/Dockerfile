@@ -1,4 +1,4 @@
-FROM python:3.8-slim AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /opt/app
 
@@ -13,10 +13,12 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN curl -sL https://deb.nodesource.com/setup_22.x > node_install.sh
 RUN chmod +x ./node_install.sh
 RUN ./node_install.sh
-RUN curl -sS http://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-RUN echo "deb http://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 RUN apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils nodejs yarn groff rsync
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils nodejs groff rsync
+# yarn via npm (Node is already installed above) - avoids the old apt-key/
+# apt repo dance, which broke once this image moved to a current Debian
+# release that no longer ships apt-key by default.
+RUN npm install -g yarn
 RUN apt install -y chromium
 # Install Lighthouse
 RUN yarn global add lighthouse
@@ -33,9 +35,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
 COPY requirements.txt .
 
 # Install dependencies into the virtual environment with Pipenv
-# requirements.txt pins celery==5.0.5, whose wheel metadata pip>=24.1 refuses
-# to parse (invalid PEP 440 specifier) - stay below that until the pins are refreshed
-RUN python3 -m pip install --upgrade "pip<24.1"
+RUN python3 -m pip install --upgrade pip
 RUN pip3 --no-cache-dir install -r requirements.txt
 RUN pip3 install celery
 

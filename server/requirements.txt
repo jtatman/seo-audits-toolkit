@@ -1,92 +1,80 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
-amqp==5.0.2
-asgiref==3.3.1
-beautifulsoup4==4.9.3
-billiard==3.6.3.0
-bokeh==2.2.3
-celery==5.0.5
-certifi==2020.12.5
-chardet==3.0.4
-click==7.1.2
-click-didyoumean==0.0.3
-click-plugins==1.1.1
-click-repl==0.1.6
-cycler==0.10.0
-decorator==4.4.2
-dj-rest-auth==2.1.2
-Django==3.1.4
-django-celery-beat==2.1.0
-django-contrib-postgres==0.0.1
-django-cors-headers==3.6.0
-django-extensions==3.1.0
-django-filter==2.4.0
-django-organizations==2.0.0
-django-timezone-field==4.1.1
-djangorestframework==3.12.2
-drf-nested-routers==0.92.5
-filelock==3.0.12
-fsspec==2025.3.0
+amqp==5.3.1
+asgiref==3.12.1
+beautifulsoup4==4.15.0
+billiard==4.2.4
+bokeh==3.10.0
+celery==5.6.3
+certifi==2026.7.22
+chardet==7.6.0
+click==8.5.0
+click-didyoumean==0.3.1
+click-plugins==1.1.1.2
+click-repl==0.3.0
+cycler==0.12.1
+decorator==5.3.1
+dj-rest-auth==7.2.0
+Django==5.2.17
+django-celery-beat==2.9.0
+django-cors-headers==4.9.0
+django-extensions==4.1
+django-filter==26.1
+django-organizations==2.7.0
+django-timezone-field==7.2.2
+djangorestframework==3.18.0
+drf-nested-routers==0.95.3
+filelock==3.32.4
+fsspec==2026.7.0
 hf-xet==1.6.0
 httpobs-cli==1.0.2
-huggingface-hub==0.36.2
-idna==2.10
-inscriptis==1.1.1
-jellyfish==0.8.2
-# Jinja2 stays pinned to the 2020-era version: pip's resolver backtracks to
-# it no matter what - something else in this stack (most likely bokeh==2.2.3)
-# hard-pins Jinja2<3. Bump is deferred to Phase 2 (bokeh/spacy/torch rework).
-Jinja2==2.11.3
-joblib==1.0.0
-kiwisolver==1.3.1
-kombu==5.0.2
-lxml==4.6.2
-MarkupSafe==1.1.1
-matplotlib==3.3.3
+huggingface-hub==1.29.0
+idna==3.19
+inscriptis==2.7.4
+jellyfish==1.2.1
+Jinja2==3.1.6
+joblib==1.5.3
+kiwisolver==1.5.1
+kombu==5.6.2
+lxml==6.1.2
+MarkupSafe==3.0.3
+matplotlib==3.11.1
 mpmath==1.3.0
-networkx==2.5
-numpy==1.19.4
-packaging==26.2
-pandas==1.2.0
-Pillow==10.4.0
-prompt-toolkit==3.0.8
-psycopg2-binary==2.8.6
-pyparsing==2.4.7
-python-crontab==2.5.1
-python-dateutil==2.8.1
-pytz==2020.4
+networkx==3.6.1
+numpy==2.5.2
+packaging==26.3
+pandas==3.0.5
+Pillow==12.3.0
+prompt-toolkit==3.0.53
+psycopg2-binary==2.9.12
+pyparsing==3.3.2
+python-crontab==3.4.0
+python-dateutil==2.9.0.post0
+pytz==2026.3.post1
 PyYAML==6.0.3
-redis==3.5.3
-regex==2020.11.13
-requests==2.32.4
-safetensors==0.5.3
-scikit-learn==0.24.0
-scipy==1.6.0
-seaborn==0.11.1
-segtok==1.5.10
-six==1.15.0
-soupsieve==2.1
-sqlparse==0.4.1
-ssh-audit==2.3.1
-sympy==1.13.3
-tabulate==0.8.7
-threadpoolctl==2.1.0
-# torch==2.4.1 is the last release with a Python 3.8 wheel (the full Python/
-# Django bump is separate follow-up work - seo-audits-toolkit-jtc.2/.3).
-# +cpu build via the extra-index-url above: the default PyPI torch package
-# bundles the full CUDA toolkit as dependencies, useless on this CPU-only
-# server. CPU-only, no torchaudio/torchvision - server/bert only summarizes
-# text.
-torch==2.4.1+cpu
-tornado==6.1
-tqdm==4.55.1
-# transformers==4.46.3 is the last release pinned to tokenizers<0.21, and
-# tokenizers==0.20.3 is the last tokenizers release with a Python 3.8 wheel.
-transformers==4.46.3
-typing-extensions==4.13.2
-uritemplate==3.0.1
-urllib3==2.2.3
-vine==5.0.0
-wcwidth==0.2.5
-# yake==0.7.3 (latest PyPI) requires Python >=3.10; 0.4.8 is the newest
-# release still installable under the current Python 3.8 base image.
-yake==0.4.8
+redis==8.1.0
+regex==2026.8.31
+requests==2.34.2
+safetensors==0.8.0
+scikit-learn==1.9.0
+scipy==1.18.1
+seaborn==0.13.2
+segtok==1.5.11
+six==1.17.0
+soupsieve==2.9.2
+sqlparse==0.6.0
+ssh-audit==3.9.0
+sympy==1.14.0
+tabulate==0.10.0
+threadpoolctl==3.6.0
+# CPU-only build via the extra-index-url above - the default PyPI torch
+# package bundles the full CUDA toolkit, unused on this GPU-less server.
+torch==2.13.0+cpu
+tornado==6.5.8
+tqdm==4.70.0
+transformers==5.16.1
+typing-extensions==4.16.0
+uritemplate==4.2.0
+urllib3==2.7.0
+vine==5.1.0
+wcwidth==0.8.3
+yake==0.7.3

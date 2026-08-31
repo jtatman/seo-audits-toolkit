@@ -86,11 +86,20 @@ code up to date. This is the running summary - full detail is in git history and
   (Pillow/PyYAML/requests/urllib3), added 24 DRF smoke tests (first test coverage in this repo),
   unblocked the admin build for Node 20/OpenSSL 3, bumped `POSTGRES_VERSION` 13→16 and
   `REDIS_VERSION` 6→7.
+- **Phase 2** (`bd show seo-audits-toolkit-jtc`, closed, 2026-08-31): full server modernization in
+  one pass — Python 3.8 (EOL) → 3.12, Django 3.1.4 → 5.2.17 LTS, every third-party Django app to
+  current (djangorestframework/django-organizations/dj-rest-auth/django_celery_beat/django-filter/
+  django_extensions), the whole numpy/scipy/pandas/scikit-learn/matplotlib stack, celery, and
+  `yake` off its git-commit pin. Replaced `bert-extractive-summarizer` (which pinned 2020-era
+  torch/transformers, pulling in the entire unused spacy 2.3.5 chain) with a direct
+  `AutoModelForSeq2SeqLM`/`AutoTokenizer` call in `server/bert/src/bertSummarizer.py` — deliberately
+  *not* `transformers.pipeline()`, which dropped the `"summarization"` task in transformers 5.x and
+  silently loads the wrong (decoder-only) architecture if you reach for `"text-generation"` instead.
+  `manage.py check`/`migrate`/`test` (24/24) all clean; full stack verified up. See mnemoria for the
+  version-research trail and the gotchas hit along the way (apt-key gone on the newer Debian base,
+  the packaging>=20.9 floor, etc).
 
 ### Planned (tracked in beads)
-- **Phase 2** (`bd show seo-audits-toolkit-jtc`): replace `bert-extractive-summarizer`/torch/
-  transformers with a current transformers pipeline call, bump the Python 3.8 (EOL) base image
-  alongside it, bump Django 3.1.4 → 5.2 LTS, refresh the `yake` pin off its git commit.
 - **Phase 3** (`bd show seo-audits-toolkit-zr2`): react-admin v3→v5 and MUI v4→v5 in `admin/`,
   after adding frontend smoke-test coverage (currently zero — `App.test.js` is unmodified CRA
   boilerplate).

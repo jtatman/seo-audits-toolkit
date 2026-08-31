@@ -136,7 +136,6 @@ LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en-us")
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
 
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
@@ -147,3 +146,8 @@ STATIC_URL = os.environ.get("STATIC_URL", '/static/')
 
 CELERY_BEAT_SCHEDULE = {}
 ORGS_SLUGFIELD = 'django_extensions.db.fields.AutoSlugField'
+
+# Existing migrations (e.g. bert/migrations/0001_initial.py) already use
+# AutoField explicitly - match that instead of BigAutoField to avoid
+# generating a new migration to alter every model's primary key type.
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
