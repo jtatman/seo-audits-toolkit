@@ -10,9 +10,9 @@ import requests
 import seaborn as sns
 from bokeh.embed import components
 from bokeh.layouts import row
-from bokeh.models import (BoxZoomTool, Circle, ColorBar, ColumnDataSource,
+from bokeh.models import (BoxZoomTool, ColorBar, ColumnDataSource,
                           DataTable, HoverTool, MultiLine, Range1d, ResetTool,
-                          TableColumn)
+                          Scatter, TableColumn)
 from bokeh.models.graphs import NodesAndLinkedEdges
 from bokeh.palettes import Spectral4, Spectral6, Spectral8
 from bokeh.plotting import figure, from_networkx
@@ -131,9 +131,12 @@ def generate_graph_internal_link_interactive(website, maximum):
                            width=400, height_policy="max")
 
     # Generating node size and color
-    maxi = 1
-    if len(d.values()) > 0:
-        maxi = max(d.values())
+    # maxi is the largest node degree, used as a division denominator below -
+    # a page with no discoverable internal links (all nodes degree 0, e.g. a
+    # single page with no same-domain links) leaves max(d.values()) == 0.
+    maxi = max(d.values()) if d.values() else 0
+    if maxi == 0:
+        maxi = 1
     node_size = {k: max(5, math.ceil((v / maxi) * 30)) for k, v in d.items()}
     node_color = {k: v for k, v in d.items()}
     mapper = linear_cmap(field_name='node_color', palette=Spectral6, low=min(
@@ -142,7 +145,7 @@ def generate_graph_internal_link_interactive(website, maximum):
     nx.set_node_attributes(g, node_size, "node_size")
     nx.set_node_attributes(g, node_color, "node_color")
 
-    plot = figure(title="Maillage Interne " + domain, plot_width=1200, plot_height=800,
+    plot = figure(title="Maillage Interne " + domain, width=1200, height=800,
                   x_range=Range1d(-1.1, 1.1), y_range=Range1d(-1.1, 1.1), sizing_mode='stretch_both')
     p = row([data_table, plot])
     graph = from_networkx(g, nx.spring_layout, scale=2)
@@ -151,11 +154,11 @@ def generate_graph_internal_link_interactive(website, maximum):
     plot.add_tools(node_hover_tool, BoxZoomTool(), ResetTool())
     plot.toolbar.active_scroll = "auto"
 
-    graph.node_renderer.hover_glyph = Circle(size=20, fill_color=Spectral4[1])
+    graph.node_renderer.hover_glyph = Scatter(marker="circle", size=20, fill_color=Spectral4[1])
     graph.edge_renderer.hover_glyph = MultiLine(
         line_color=Spectral8[6], line_width=1)
     graph.edge_renderer.glyph = MultiLine(line_alpha=0.8, line_width=0.03)
-    graph.node_renderer.glyph = Circle(size='node_size', fill_color=mapper)
+    graph.node_renderer.glyph = Scatter(marker="circle", size='node_size', fill_color=mapper)
 
     graph.inspection_policy = NodesAndLinkedEdges()
     color_bar = ColorBar(

@@ -17,7 +17,7 @@ x-server-env: &server-env
 services:
 
   server:
-    image: stangirard/osat-server
+    image: osat-server
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -42,7 +42,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: stangirard/osat-server
+    image: osat-server
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -62,7 +62,7 @@ services:
     restart: unless-stopped
 
   beats:
-    image: stangirard/osat-server
+    image: osat-server
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -82,7 +82,7 @@ services:
     restart: unless-stopped
 
   dashboard:
-    image: stangirard/osat-dashboard
+    image: osat-dashboard
     container_name: ${NAMESPACE}-dashboard
     build:
       context: ./admin

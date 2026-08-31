@@ -118,6 +118,33 @@ code up to date. This is the running summary - full detail is in git history and
   + full stack up + HTTP-level render check (no live browser was available in this sandbox for a
   visual check). See mnemoria for the full CRA→Vite checklist and the react-admin v5 gotchas.
 
+- **Phase 4** (2026-08-31): functional audit + deadwood removal, done directly (not tracked as a
+  beads epic — small enough to complete in one pass). Exercised every feature end-to-end against
+  the live stack (not just smoke tests) and found/fixed 3 real bugs the dependency bumps had
+  quietly introduced: `internalLinks` crashed on any site with zero discoverable internal links
+  (`ZeroDivisionError`) and on bokeh's 2→3 API renames (`plot_width`→`width`,
+  `Circle(size=...)`→`Scatter(marker="circle", size=...)`); `lighthouse` crashed because Google
+  dropped the `"pwa"` category from Lighthouse's default output at some point (now defensive via
+  `.get()` with an `"N/A"` fallback). Also found and fixed a real **shell-injection vulnerability**
+  in both `security/tasks.py` and `lighthouse/tasks.py` — user-supplied `url` was concatenated into
+  a `shell=True` subprocess string (arbitrary command execution, gated only by being any logged-in
+  user); fixed via `subprocess.run([...])` argument lists. `security`'s actual scan feature remains
+  non-functional — it depends on Mozilla's original HTTP Observatory API, which now returns 502 for
+  every request and appears discontinued upstream (`bd show seo-audits-toolkit-7nm`). Replaced the
+  broken `init_data.json` onboarding fixture (hardcoded ContentType/Permission PKs, silently broken
+  by Phase 2's migration-history changes) with an idempotent `manage.py seed_demo_data` command.
+  Removed dead weight: `.docker/alpine/*` (zero references anywhere, leftover from a much older
+  deployment topology), an accidentally-committed 462KB Lighthouse result dump in `shared/data/`,
+  the unused `shared/logs/redis/` dir, stale `.gitignore` entries for services that don't exist
+  (mysql, influxdb). Investigated the admin bundle's >500kB chunk warning — MUI splits cleanly into
+  its own chunk (~530kB), but react-admin's UI layer imports MUI directly so splitting *that* out
+  too produces a circular chunk; settled on the MUI-only split plus a 750kB warning threshold
+  reflecting that real floor. README.md rewritten to match (correct login/init flow, dropped the
+  `docker-compose pull` instruction since there's nothing to pull for this fork, documented the
+  Security Audit limitation). `contribs/bert-summary` and `contribs/yake` (standalone, optional,
+  not wired into root compose) were left alone rather than deleted — flagged for a decision, not
+  obviously-orphaned deadwood (`bd show seo-audits-toolkit-e5c`).
+
 ## Build & Test
 
 ```bash
@@ -125,6 +152,7 @@ code up to date. This is the running summary - full detail is in git history and
 docker compose build server
 docker compose run --rm --entrypoint python server manage.py test      # 24 smoke tests
 docker compose run --rm --entrypoint python server manage.py migrate
+docker compose run --rm --entrypoint python server manage.py seed_demo_data  # admin/admin + demo org
 
 # Admin (React/react-admin dashboard, Vite-based)
 docker compose build dashboard

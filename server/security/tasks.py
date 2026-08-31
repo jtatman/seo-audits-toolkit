@@ -37,8 +37,11 @@ def security_add_new_url_crawler(url):
 
 
 def run_security(url):
-    proc=subprocess.Popen("httpobs-cli -d " + url, stdout=subprocess.PIPE, shell=True)
-    result = proc.stdout.read().decode("utf-8") 
+    # subprocess.run with an argument list (no shell=True) - url is
+    # user-supplied and must never be interpolated into a shell command
+    # string, which would let a crafted url run arbitrary shell commands.
+    proc = subprocess.run(["httpobs-cli", "-d", url], stdout=subprocess.PIPE)
+    result = proc.stdout.decode("utf-8")
     result = json.loads(result)
     computed = {}
     computed["score"] = result["scan"]["score"]
