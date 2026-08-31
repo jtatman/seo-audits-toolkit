@@ -14,6 +14,8 @@ class InternalLinksViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberWithPageSizePagination
     queryset = InternalLinks.objects.all().order_by('-begin_date')
     serializer_class = InternalLinksSerializer
+    ## User has to be authenticated
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['id']
     filter_backends = [DjangoFilterBackend]

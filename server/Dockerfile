@@ -10,7 +10,7 @@ RUN python3 -m pip install --upgrade pip
 
 # Install Nodejs and yarn
 RUN rm -rf /var/lib/apt/lists/*
-RUN curl -sL https://deb.nodesource.com/setup_12.x > node_install.sh
+RUN curl -sL https://deb.nodesource.com/setup_22.x > node_install.sh
 RUN chmod +x ./node_install.sh
 RUN ./node_install.sh
 RUN curl -sS http://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
@@ -33,15 +33,15 @@ ENV PATH="/opt/venv/bin:$PATH" \
 COPY requirements.txt .
 
 # Install dependencies into the virtual environment with Pipenv
-RUN python3 -m pip install --upgrade pip
-RUN pip3 --no-cache-dir install -r requirements.txt 
+# requirements.txt pins celery==5.0.5, whose wheel metadata pip>=24.1 refuses
+# to parse (invalid PEP 440 specifier) - stay below that until the pins are refreshed
+RUN python3 -m pip install --upgrade "pip<24.1"
+RUN pip3 --no-cache-dir install -r requirements.txt
 RUN pip3 install celery
 
 ARG VERSION
 ARG BUILD
 ARG NOW
-ARG TINI_VERSION=${TINI_VERSION:-"v0.19.0"}
-
 
 # Install runtime dependencies & create runtime user
 RUN mkdir -p /opt \

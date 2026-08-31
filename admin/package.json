@@ -2,6 +2,9 @@
     "name": "test-admin",
     "version": "0.1.0",
     "private": true,
+    "resolutions": {
+        "**/postcss-safe-parser/postcss": "^8.4.31"
+    },
     "dependencies": {
         "@material-ui/data-grid": "^4.0.0-alpha.23",
         "@testing-library/jest-dom": "^5.11.10",

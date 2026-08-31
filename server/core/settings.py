@@ -20,12 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", '=k!3##nty)rnp^(4wu=_kj(g7a)1rk80oymn52(we00z5y%ox=')
+SECRET_KEY = os.environ["SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", 'http://localhost:3000').split(",")
 
 REST_FRAMEWORK = {
@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'org.apps.OrgConfig',
     'bert.apps.BertConfig',
     'security.apps.SecurityConfig',
+    'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -104,7 +105,7 @@ DATABASES = {
         'NAME':     os.environ.get("DATABASE_NAME", "osat"),
         'USER':     os.environ.get("DATABASE_USER", "postgres"),
         'PASSWORD': os.environ.get("DATABASE_PASSWORD", "TEST"),
-        'HOST':     os.environ.get("DATABASE_HOST", "osat.ctcghdbvsxw2.eu-west-3.rds.amazonaws.com"),
+        'HOST':     os.environ.get("DATABASE_HOST", "localhost"),
         'PORT':     os.environ.get("DATABASE_PORT", '5432'),
     }
 }
