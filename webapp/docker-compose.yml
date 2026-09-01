@@ -1,0 +1,29 @@
+# Self-contained - independent of the root docker-compose.yml (the old
+# Django/react-admin stack). Two containers total: `web` and `worker`, both
+# sharing one SQLite-backed data volume. No Postgres/Redis/reverse-proxy
+# container by default - see README.md for the Postgres escape hatch.
+services:
+  web:
+    build: .
+    image: osat-webapp
+    container_name: osat-webapp
+    env_file: .env
+    command: ["web"]
+    ports:
+      - "5000:5000"
+    volumes:
+      - webapp-data:/data
+    restart: unless-stopped
+
+  worker:
+    build: .
+    image: osat-webapp
+    container_name: osat-webapp-worker
+    env_file: .env
+    command: ["worker"]
+    volumes:
+      - webapp-data:/data
+    restart: unless-stopped
+
+volumes:
+  webapp-data:

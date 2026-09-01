@@ -181,6 +181,43 @@ code up to date. This is the running summary - full detail is in git history and
   `curl localhost:3000/dj-rest-auth/login/` proxy through to the server with identical responses to
   hitting `localhost:8001` directly, and a real login through the proxy returns a valid token.
 
+- **Phase 6 (2026-09-01, in progress): full rewrite as a Flask monolith in `webapp/`.** After using
+  the fully-modernized dashboard, the user found it unusable as a product, not just dated:
+  react-admin's "Configuration" menu item was dead demo boilerplate never wired up, there was no
+  way to add an organization/website from the dashboard at all (only through raw Django admin), and
+  that gap cascaded into every audit-creation form failing with 400 "bad request" (their website
+  picker had nothing to select). A competitive survey of open-source SEO audit tools (SEOnaut,
+  open-seo-crawler) confirmed the feature combination is worth building — nothing OSS combines
+  Lighthouse/PSI + sitemap + keywords + link graphs + security scanning — but that every
+  actively-maintained comparable tool is a monolith with a server-rendered UI, not a decoupled
+  API+SPA; that split bought nothing here and directly caused this session's MenuListContext
+  duplicate-package bug and hardcoded-port bug (see Phase 5 above). Decision: rewrite as a Flask
+  monolith in a new `webapp/` directory, run alongside the untouched old stack until it reaches
+  parity (separate future cutover decision). User also pushed the infra footprint down mid-plan: no
+  Postgres/Redis/Caddy by default, SQLite with a `DATABASE_URL` escape hatch to Postgres, hard cap
+  of two containers (`web` + `worker`). Stack: Flask + SQLAlchemy + Flask-Login + Flask-WTF,
+  **Huey** (not Celery) for background jobs — supports SQLite storage natively and its
+  `@periodic_task` decorator replaces `django_celery_beat`'s DB-backed scheduler with plain code, no
+  third "beat" container needed. Jinja2 + htmx frontend, no build step (htmx vendored locally, not
+  CDN-loaded, to keep the app fully self-hosted with no runtime external dependency). Full plan
+  (data model, feature port order, library swaps: PSI API replacing the dead `pyspeedinsights` and
+  the Node `lighthouse` CLI, `ultimate-sitemap-parser` replacing pandas/manual XML parsing,
+  `wapiti3`/in-process header check replacing the Node `mdn-http-observatory-scan` CLI) is at
+  `~/.claude/plans/async-cooking-globe.md`. Skeleton milestone done and verified: app factory,
+  `User`/`Site`/`SiteMembership` models (replacing `django-organizations` with a lightweight
+  home-grown membership table), Flask-Login auth, Site create/list/detail pages (fixes the core
+  "can't add an org" complaint from day one), Huey wiring with a working ping round-trip job,
+  `webapp/Dockerfile` + self-contained `webapp/docker-compose.yml` (2 services). Verified via a real
+  `docker compose build && up` — both containers healthy, register→login→create-site→list flow and
+  the web→queue→worker job round trip all confirmed via curl against the actual running containers,
+  not just local dev-server testing (caught and fixed a real CSRF-token bug this way: raw HTML
+  `<form>`s need an explicit `{{ csrf_token() }}` hidden field with Flask-WTF's global
+  `CSRFProtect`, which isn't automatic). Old `server`/`admin` stack untouched. Remaining phases per
+  the plan: job infra is done, then port features cheapest-first (keywords → extractor/sitemap →
+  internal links → security → lighthouse/PSI → bert summarizer), each ending with an actual browser
+  walkthrough by the user, not just automated checks — direct response to this round's feedback that
+  not seeing the real product sooner is what let the react-admin dashboard ship broken.
+
 ## Build & Test
 
 ```bash
