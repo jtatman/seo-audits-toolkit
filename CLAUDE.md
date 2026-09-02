@@ -329,6 +329,19 @@ code up to date. This is the running summary - full detail is in git history and
   `server/`+`admin/` to `webapp/` (deleting the old stack) was explicitly out of scope for this
   plan and remains a separate future decision.
 
+  User then hit `http://localhost:5000` in a browser (the app's own base URL) and got a plain
+  "Not Found" - a real, basic bug that slipped through every round of curl/testing this session,
+  because every verification pass always hit a specific known path (`/healthz`, `/auth/register`,
+  `/sites/...`) and never the bare root. No route was ever registered for `/` at all - every
+  blueprint mounts under its own prefix (`/auth`, `/sites`, ...), so the app's front door had no
+  handler. Fixed with a `/` route in `app/__init__.py` that redirects to `sites.list_sites`
+  (Flask-Login's own `@login_required` then redirects further to `auth.login?next=...` if not
+  signed in). Verified both paths for real: logged-out root now lands on the login page, logged-in
+  root lands on the sites list. **Lesson for future verification passes on this app: always
+  additionally check the bare `/` alongside whatever specific route is being tested** - it's the
+  one URL an actual user is guaranteed to hit first and the one this session's otherwise-thorough
+  curl-driven verification kept skipping.
+
 ## Build & Test
 
 ```bash

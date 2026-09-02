@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 
 from .extensions import csrf, db, login_manager
 
@@ -34,6 +34,15 @@ def create_app(config_object="config.Config"):
     app.register_blueprint(security_bp)
     app.register_blueprint(pagespeed_bp)
     app.register_blueprint(summarizer_bp)
+
+    @app.get("/")
+    def index():
+        # No route was ever registered for the bare root - every blueprint
+        # is mounted under a prefix (/auth, /sites, ...), so visiting the
+        # app's own base URL 404'd. Send people somewhere real: sites.list
+        # if logged in (Flask-Login redirects to auth.login itself when
+        # not, via login_manager.login_view).
+        return redirect(url_for("sites.list_sites"))
 
     @app.get("/healthz")
     def healthz():
