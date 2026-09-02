@@ -246,6 +246,19 @@ code up to date. This is the running summary - full detail is in git history and
   python.org's homepage took 37s serial. Fixed with a small `ThreadPoolExecutor` (20 concurrent
   requests) in `app/scrapers/links.py`, down to ~2.4s for the same page.
 
+  Internal links graph ported next — the old Django app's `InternalLinks` model had no site scoping
+  at all (global to any authenticated user); `ScanMixin` fixes that automatically here like every
+  other feature. `app/scrapers/internal_links.py` reimplements the crawl+graph logic against
+  **current** bokeh 3.10 APIs directly (`Scatter`, `MultiLine`, `linear_cmap`) rather than porting
+  the old file's outdated calls, since Phase 4's history already documented those as broken
+  (`plot_width`→`width`, `Circle`→`Scatter`); dropped the dead `seaborn` color-palette code per the
+  plan. BokehJS itself ships inside the `bokeh` pip package's own `server/static/js/`, so the
+  Dockerfile copies `bokeh.min.js`/`bokeh-tables.min.js` into `app/static/js/bokeh/` at build time
+  (not committed to git) rather than pull it from a CDN, keeping the vendored JS version-locked to
+  whatever `bokeh` `requirements.txt` pins. Verified against a real live crawl (flask docs site, 15
+  pages, 2875 links) — degree-colored Viridis scatter graph with hover tooltips rendered correctly
+  client-side via `Bokeh.embed.embed_item()`.
+
 ## Build & Test
 
 ```bash

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Internal links - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('sites.detail', site_id=site.id) }}">&larr; {{ site.name }}</a></p>
+<h1>Internal link graph</h1>
+<p class="muted">Crawls same-domain pages starting from a URL and visualizes how they link to each other.</p>
+
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="url">Start URL</label>
+    <input type="url" id="url" name="url" required value="{{ site.url }}">
+
+    <label for="maximum">Max pages to crawl</label>
+    <input type="text" id="maximum" name="maximum" value="50" style="max-width: 8rem;">
+
+    <button type="submit">Crawl</button>
+</form>
+
+<h2>Past scans</h2>
+{% if scans %}
+    <table>
+        <thead><tr><th>URL</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            {% for scan in scans %}
+            <tr>
+                <td>{{ scan.params.url }}</td>
+                <td>{{ scan.status }}</td>
+                <td><a href="{{ url_for('internal_links.detail', site_id=site.id, scan_id=scan.id) }}">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="muted">No scans yet.</p>
+{% endif %}
+{% endblock %}

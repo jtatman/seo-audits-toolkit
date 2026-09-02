@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Internal links scan - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('internal_links.index', site_id=site.id) }}">&larr; Internal link graph</a></p>
+<h1>Internal link graph</h1>
+<p class="muted">{{ scan.params.url }} &middot; {{ scan.status }}</p>
+
+{% if scan.status == "failed" %}
+    <div class="flash flash-error">{{ scan.error }}</div>
+{% elif scan.status != "finished" %}
+    <p class="muted">Still crawling - refresh to check again.</p>
+{% else %}
+    <p class="muted">{{ scan.result.pages_crawled }} pages crawled, {{ scan.result.total_links }} links found.</p>
+    <div id="internal-links-graph"></div>
+    <script src="{{ url_for('static', filename='js/bokeh/bokeh.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bokeh/bokeh-tables.min.js') }}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            Bokeh.embed.embed_item({{ scan.result.bokeh_item | tojson }});
+        });
+    </script>
+{% endif %}
+{% endblock %}

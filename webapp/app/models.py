@@ -99,3 +99,9 @@ class ExtractorScan(ScanMixin, db.Model):
 
 class SitemapScan(ScanMixin, db.Model):
     """params: {url}"""
+
+
+class InternalLinksScan(ScanMixin, db.Model):
+    """params: {url, maximum}. The old Django app's InternalLinks model had
+    no site scoping at all (global, visible to any authenticated user) -
+    ScanMixin fixes that here like every other feature."""

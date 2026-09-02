@@ -112,3 +112,14 @@ def run_sitemap_scan(scan_id):
         return extract_urls(params["url"])
 
     _run_scan(SitemapScan, scan_id, work)
+
+
+@huey.task()
+def run_internal_links_scan(scan_id):
+    from .models import InternalLinksScan
+    from .scrapers.internal_links import generate_graph
+
+    def work(params):
+        return generate_graph(params["url"], maximum=params.get("maximum", 200))
+
+    _run_scan(InternalLinksScan, scan_id, work)
