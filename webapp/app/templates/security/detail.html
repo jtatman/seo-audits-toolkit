@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Security scan - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('security.index', site_id=site.id) }}">&larr; Security scan</a></p>
+<h1>Security scan</h1>
+<p class="muted">{{ scan.params.url }} &middot; {{ scan.status }}</p>
+
+{% if scan.status == "failed" %}
+    <div class="flash flash-error">{{ scan.error }}</div>
+{% elif scan.status != "finished" %}
+    <p class="muted">Still processing - refresh to check again{% if scan.params.deep_scan %} (deep scans can take several minutes){% endif %}.</p>
+{% else %}
+    {% set h = scan.result.headers %}
+    <h2>Headers &mdash; grade {{ h.grade }} ({{ h.score }}/100)</h2>
+    <table>
+        <thead><tr><th>Check</th><th>Result</th></tr></thead>
+        <tbody>
+            {% for test in h.tests %}
+            <tr>
+                <td>{{ test.name }}</td>
+                <td>{{ "✓ pass" if test.pass else "✗ " ~ test.result }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if scan.result.wapiti %}
+        {% set w = scan.result.wapiti %}
+        <h2>Deep scan (wapiti)</h2>
+        <p class="muted">{{ w.crawled_pages }} pages crawled, {{ w.findings_count }} findings.</p>
+        {% if w.findings %}
+            <table>
+                <thead><tr><th>Category</th><th>Path</th><th>Detail</th></tr></thead>
+                <tbody>
+                    {% for f in w.findings %}
+                    <tr><td>{{ f.category }}</td><td>{{ f.path }}</td><td>{{ f.info }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="muted">No findings.</p>
+        {% endif %}
+    {% endif %}
+{% endif %}
+{% endblock %}

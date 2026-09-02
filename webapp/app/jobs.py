@@ -123,3 +123,19 @@ def run_internal_links_scan(scan_id):
         return generate_graph(params["url"], maximum=params.get("maximum", 200))
 
     _run_scan(InternalLinksScan, scan_id, work)
+
+
+@huey.task()
+def run_security_scan(scan_id):
+    from .models import SecurityScan
+    from .scrapers import security as security_scraper
+
+    def work(params):
+        result = {"headers": security_scraper.scan(params["url"])}
+        if params.get("deep_scan"):
+            from .scrapers import wapiti_scan
+
+            result["wapiti"] = wapiti_scan.scan(params["url"])
+        return result
+
+    _run_scan(SecurityScan, scan_id, work)

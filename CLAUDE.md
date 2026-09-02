@@ -259,6 +259,28 @@ code up to date. This is the running summary - full detail is in git history and
   pages, 2875 links) — degree-colored Viridis scatter graph with hover tooltips rendered correctly
   client-side via `Bokeh.embed.embed_item()`.
 
+  Security scanning ported next — `app/scrapers/security.py` reimplements the passive header-check
+  category MDN's HTTP Observatory covers (CSP, HSTS, X-Content-Type-Options, X-Frame-Options,
+  Referrer-Policy, Permissions-Policy, cookie Secure/HttpOnly flags) directly in Python against the
+  live response, dropping the Node `mdn-http-observatory-scan` CLI dependency entirely per the plan.
+  Added the "optional wapiti3 deeper scan" the plan called for too: `app/scrapers/wapiti_scan.py`
+  shells out to `wapiti` (pip-installable, `wapiti3` on PyPI) with bounded `--max-scan-time`/
+  `--max-attack-time` (300s each) and parses its JSON report into a flat findings list; it's opt-in
+  via a checkbox with an explicit "only run against sites you own or are authorized to test" label,
+  since unlike the passive header check it actively sends attack payloads. Discovered wapiti3 pulls
+  in a much heavier dependency tree than expected (mitmproxy, playwright, browser-cookie3 — pushed
+  the image from ~500MB to ~1.1GB) since it supports headless-browser crawling as one of several
+  crawl modes; deliberately did **not** add a `playwright install chromium` step (would reintroduce
+  the exact Node/Chromium weight this rewrite dropped Lighthouse to avoid) so wapiti runs in its
+  default HTTP-crawl mode only — worth knowing if headless-JS-rendered-site scanning is ever needed
+  later. Also discovered and fixed a real concurrency ceiling this surfaced: a multi-minute wapiti
+  scan would otherwise block every other queued job, since `huey_consumer` defaults to a single
+  worker thread — bumped to `-w 4` in `docker-entrypoint.sh`. Verified both the passive check (real
+  scan against github.com, grade F/57 due to CSP allowing unsafe-inline and a non-HttpOnly analytics
+  cookie - accurate, not a bug) and the deep wapiti scan (run against the webapp container's own
+  internal address over the `internal` Docker network, correctly found the container has no CSP/
+  X-Frame-Options/X-Content-Type-Options - true findings, this app doesn't set those yet either).
+
 ## Build & Test
 
 ```bash

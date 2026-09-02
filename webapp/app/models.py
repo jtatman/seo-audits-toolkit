@@ -105,3 +105,9 @@ class InternalLinksScan(ScanMixin, db.Model):
     """params: {url, maximum}. The old Django app's InternalLinks model had
     no site scoping at all (global, visible to any authenticated user) -
     ScanMixin fixes that here like every other feature."""
+
+
+class SecurityScan(ScanMixin, db.Model):
+    """params: {url, deep_scan}. Passive header check always runs; deep_scan
+    additionally runs wapiti's active vulnerability probes (result gets a
+    "wapiti" key when that ran)."""

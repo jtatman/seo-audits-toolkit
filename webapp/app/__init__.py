@@ -21,6 +21,7 @@ def create_app(config_object="config.Config"):
     from .extractor import bp as extractor_bp
     from .internal_links import bp as internal_links_bp
     from .keywords import bp as keywords_bp
+    from .security import bp as security_bp
     from .sites import bp as sites_bp
 
     app.register_blueprint(auth_bp)
@@ -28,6 +29,7 @@ def create_app(config_object="config.Config"):
     app.register_blueprint(keywords_bp)
     app.register_blueprint(extractor_bp)
     app.register_blueprint(internal_links_bp)
+    app.register_blueprint(security_bp)
 
     @app.get("/healthz")
     def healthz():
