@@ -115,3 +115,9 @@ class SecurityScan(ScanMixin, db.Model):
 
 class PageSpeedScan(ScanMixin, db.Model):
     """params: {url, strategy}. strategy is "mobile" or "desktop"."""
+
+
+class SummaryScan(ScanMixin, db.Model):
+    """params: {text}. Heaviest job in the app (loads a ~1.6GB seq2seq
+    model on first use per worker process) - see jobs.py's docstring on
+    run_summary_scan for the isolation tradeoff this accepts."""

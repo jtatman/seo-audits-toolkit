@@ -297,6 +297,32 @@ code up to date. This is the running summary - full detail is in git history and
   themselves** to confirm the live happy path - the one gap in this session's "verify against the
   real running app" discipline, and it's a credential gap, not a shortcut taken.
 
+  Bert summarizer ported last, completing the feature-port list from the rewrite plan.
+  `app/scrapers/summarizer.py` is a near-verbatim port of `server/bert/src/bertSummarizer.py`
+  (`AutoModelForSeq2SeqLM`/`AutoTokenizer` on `facebook/bart-large-cnn`, deliberately not
+  `transformers.pipeline()` for the same reason documented there) - reusing a pattern already proven
+  working in this session's Django rewrite rather than re-deriving it. `transformers`/`torch` pinned
+  to the exact same versions already validated in `server/Pipfile`. Pushed the image from 1.1GB to
+  1.59GB (torch is the single heaviest dependency in the app by far) - accepted as proportionate
+  since the user explicitly kept this feature in scope knowing the ML stack is inherently heavy,
+  unlike the Node/Chromium weight this rewrite deliberately dropped elsewhere. Not run on a separate
+  Huey queue/consumer process as the plan's data-model section aspired to ("isolated to its own huey
+  queue") - true isolation needs a second supervised process inside the worker container or a 3rd
+  container, not proportionate for a single-user self-hosted app; `-w 4` thread pool in
+  `docker-entrypoint.sh` still means one heavy summarize job only occupies one of four worker slots
+  rather than blocking everything, which is the isolation that actually matters day to day. **Fully
+  live-verified**, unlike PageSpeed Insights: registered a user, created a site, submitted a real
+  paragraph of text, watched the worker download bart-large-cnn from Hugging Face Hub (unauthenticated,
+  ~199s total including download+load+inference) and produce a coherent, accurate summary of the
+  input text.
+
+  **All six planned features are now ported**: keywords, extractor/sitemap, internal links, security
+  (+ optional wapiti deep scan), PageSpeed Insights, and the summarizer. Five of six verified against
+  real live targets through the actual running Docker containers; PageSpeed Insights is the one
+  exception (no API key available in this sandbox - see that entry above). Cutting over from
+  `server/`+`admin/` to `webapp/` (deleting the old stack) was explicitly out of scope for this
+  plan and remains a separate future decision.
+
 ## Build & Test
 
 ```bash

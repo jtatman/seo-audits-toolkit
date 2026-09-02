@@ -36,7 +36,7 @@
 </div>
 
 <div class="card">
-    <p class="muted">More audit features (the text summarizer) land here as each is ported
-    from the old Django app - see the project plan.</p>
+    <a href="{{ url_for('summarizer.index', site_id=site.id) }}">Summarizer</a>
+    <div class="muted">Summarize any block of text - useful for generating excerpts.</div>
 </div>
 {% endblock %}

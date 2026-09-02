@@ -8,9 +8,20 @@ torn down without touching the old stack.
 
 ## Status
 
-Skeleton only, so far: auth (register/login/logout) and site management
-(the "add a website to audit" flow the old dashboard never had). No audit
-features are ported yet - see the plan for the port order.
+All planned features are ported: auth, site management (the "add a website
+to audit" flow the old dashboard never had), keyword extraction, page
+extractor (headers/images/links), sitemap crawling, internal link graphs,
+security scanning (passive headers + optional wapiti deep scan), PageSpeed
+Insights, and the text summarizer.
+
+**PageSpeed Insights needs a `PSI_API_KEY`** set in `.env` (a Google Cloud
+API key - the API has zero free/anonymous quota) or every scan will fail
+with a clear error explaining that. Every other feature works with no
+extra configuration.
+
+Cutting over from the old `../server`+`../admin` stack to this one (and
+removing the old stack) hasn't happened yet - both currently run
+independently side by side.
 
 ## Running it
 

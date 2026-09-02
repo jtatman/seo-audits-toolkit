@@ -24,6 +24,7 @@ def create_app(config_object="config.Config"):
     from .pagespeed import bp as pagespeed_bp
     from .security import bp as security_bp
     from .sites import bp as sites_bp
+    from .summarizer import bp as summarizer_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(sites_bp)
@@ -32,6 +33,7 @@ def create_app(config_object="config.Config"):
     app.register_blueprint(internal_links_bp)
     app.register_blueprint(security_bp)
     app.register_blueprint(pagespeed_bp)
+    app.register_blueprint(summarizer_bp)
 
     @app.get("/healthz")
     def healthz():

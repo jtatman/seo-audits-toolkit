@@ -1,3 +1,7 @@
+# CPU-only build via the extra-index-url below - the default PyPI torch
+# package bundles the full CUDA toolkit, unused on this GPU-less server.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 Flask==3.1.3
 Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
@@ -12,3 +16,5 @@ ultimate-sitemap-parser==1.8.1
 networkx==3.6.1
 bokeh==3.10.0
 wapiti3==3.3.2
+transformers==5.16.1
+torch==2.13.0+cpu

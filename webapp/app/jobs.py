@@ -143,6 +143,25 @@ def run_pagespeed_scan(scan_id):
 
 
 @huey.task()
+def run_summary_scan(scan_id):
+    """Not run on a separate Huey queue/consumer process, unlike the
+    original plan's "isolate to its own queue" aspiration - that needs a
+    second supervised process inside the worker container (or a 3rd
+    container), which isn't proportionate for a single-user self-hosted
+    app. The -w 4 thread pool (see docker-entrypoint.sh) still means one
+    slow/heavy summarize job only occupies one of four worker slots,
+    leaving the others free for lightweight jobs - real memory isolation
+    is the piece this doesn't have."""
+    from .models import SummaryScan
+    from .scrapers.summarizer import summarize
+
+    def work(params):
+        return summarize(params["text"])
+
+    _run_scan(SummaryScan, scan_id, work)
+
+
+@huey.task()
 def run_security_scan(scan_id):
     from .models import SecurityScan
     from .scrapers import security as security_scraper
