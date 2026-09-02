@@ -285,17 +285,24 @@ code up to date. This is the running summary - full detail is in git history and
   `app/scrapers/pagespeed.py` calls the PSI v5 REST API directly with `requests` - one response
   includes both Lighthouse lab category scores (`lighthouseResult.categories`) and real-user CrUX
   field data (`loadingExperience.metrics`), covering the old app's separate Lighthouse-CLI-only
-  approach in a single call. **Not live-verified end-to-end** — unlike every other feature this
-  session, PSI v5 has zero anonymous quota (confirmed via a direct curl: 429 "Queries per day"
-  limit of 0 with no key) and no API key was available in this sandbox. Confirmed the exact response
-  schema via the API's own discovery document (`googleapis.com/discovery/v1/apis/pagespeedonline/v5/
-  rest`) rather than guessing, and verified the parsing logic + detail template against a payload
-  shaped to that real schema (mocked `requests.get`, then a directly-inserted `finished` scan row
-  rendered correctly). Verified the actual failure path for real, though: with no `PSI_API_KEY` set,
-  a scan correctly fails with a clear "PSI_API_KEY is not set... see README.md" message rather than
-  crashing. **User needs to set a real `PSI_API_KEY` in `webapp/.env` and click through this one
-  themselves** to confirm the live happy path - the one gap in this session's "verify against the
-  real running app" discipline, and it's a credential gap, not a shortcut taken.
+  approach in a single call. Confirmed the exact response schema via the API's own discovery
+  document (`googleapis.com/discovery/v1/apis/pagespeedonline/v5/rest`) rather than guessing.
+
+  Initially shipped without a live end-to-end check - PSI v5 has zero anonymous quota (confirmed via
+  a direct curl: 429 "Queries per day" limit of 0 with no key) and no API key was available in this
+  sandbox at the time, so only the parsing logic (mocked `requests.get` against a schema-accurate
+  payload) and the missing-key failure path were verified. **User added a real `PSI_API_KEY`
+  afterward and this got live-tested for real**, which caught two real bugs the mocked test couldn't
+  have: (1) the initial `requests.get(..., timeout=60)` was too short - PSI runs a genuine
+  server-side Lighthouse audit per request, and requesting all 4 categories together (needed to get
+  every score in one call) routinely takes 30-90s+; a live scan against `example.com` timed out at
+  exactly 60.4s, confirming it was the timeout and not a hang. Bumped to 180s. (2) A retry against
+  `example.com` then hit a genuine Google-side error ("Lighthouse returned error: Something went
+  wrong") - not our bug, PSI's own Lighthouse runner sometimes fails on `example.com`'s minimal
+  placeholder page. Confirmed by retrying against a real site (python.org) instead, which succeeded
+  cleanly: performance 81, accessibility 75, best-practices 92, seo 92, plus real CrUX field data
+  (FCP 1113ms, LCP 1181ms, CLS 0, INP 87ms, TTFB 515ms, all graded FAST). PageSpeed Insights is now
+  fully live-verified like every other feature in this rewrite.
 
   Bert summarizer ported last, completing the feature-port list from the rewrite plan.
   `app/scrapers/summarizer.py` is a near-verbatim port of `server/bert/src/bertSummarizer.py`
@@ -316,10 +323,9 @@ code up to date. This is the running summary - full detail is in git history and
   ~199s total including download+load+inference) and produce a coherent, accurate summary of the
   input text.
 
-  **All six planned features are now ported**: keywords, extractor/sitemap, internal links, security
-  (+ optional wapiti deep scan), PageSpeed Insights, and the summarizer. Five of six verified against
-  real live targets through the actual running Docker containers; PageSpeed Insights is the one
-  exception (no API key available in this sandbox - see that entry above). Cutting over from
+  **All six planned features are now ported and live-verified** against real targets through the
+  actual running Docker containers: keywords, extractor/sitemap, internal links, security (+
+  optional wapiti deep scan), PageSpeed Insights, and the summarizer. Cutting over from
   `server/`+`admin/` to `webapp/` (deleting the old stack) was explicitly out of scope for this
   plan and remains a separate future decision.
 

@@ -27,7 +27,11 @@ def run_pagespeed(url, api_key, strategy="mobile"):
         ("strategy", strategy),
     ] + [("category", c) for c in CATEGORIES]
 
-    resp = requests.get(API_URL, params=params, timeout=60)
+    # PSI runs a real Lighthouse audit server-side per request - requesting
+    # all 4 categories together (needed to get every score in one call)
+    # routinely takes 30-90s+, confirmed by a live timeout at exactly 60s
+    # during testing. 180s covers that with real margin.
+    resp = requests.get(API_URL, params=params, timeout=180)
     data = resp.json()
 
     if resp.status_code != 200:
