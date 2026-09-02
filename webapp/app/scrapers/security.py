@@ -7,6 +7,8 @@ Python with no Node runtime in the image."""
 
 import requests
 
+from .http_tools import HEADERS
+
 CHECKS = [
     "content_security_policy",
     "strict_transport_security",
@@ -110,7 +112,7 @@ def _check_cookies(response):
 
 
 def scan(url):
-    response = requests.get(url, timeout=10)
+    response = requests.get(url, timeout=10, headers=HEADERS)
     headers = response.headers
     is_https = response.url.startswith("https://")
 

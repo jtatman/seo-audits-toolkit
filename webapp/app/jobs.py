@@ -55,32 +55,6 @@ def ping():
 
 
 @huey.task()
-def run_keyword_scan(scan_id):
-    import yake
-
-    from .models import KeywordScan
-
-    def work(params):
-        extractor = yake.KeywordExtractor(
-            lan=params.get("language", "en"),
-            n=params.get("ngram", 2),
-            top=params.get("number_keywords", 20),
-            dedupLim=0.8,
-            windowsSize=2,
-        )
-        keywords = extractor.extract_keywords(params["text"])
-        # yake scores are lower-is-more-relevant; cast off numpy's float64
-        # so this is plain JSON.
-        return {
-            "keywords": [
-                {"keyword": kw, "score": float(score)} for kw, score in keywords
-            ]
-        }
-
-    _run_scan(KeywordScan, scan_id, work)
-
-
-@huey.task()
 def run_extractor_scan(scan_id):
     from .models import ExtractorScan
     from .scrapers.headers import find_all_headers
@@ -95,34 +69,9 @@ def run_extractor_scan(scan_id):
 
     def work(params):
         scraper = scrapers[params["extractor_type"]]
-        result = scraper(params["url"])
-        if result is None:
-            raise RuntimeError(f"Could not fetch {params['url']}")
-        return result
+        return scraper(params["url"])
 
     _run_scan(ExtractorScan, scan_id, work)
-
-
-@huey.task()
-def run_sitemap_scan(scan_id):
-    from .models import SitemapScan
-    from .scrapers.sitemap import extract_urls
-
-    def work(params):
-        return extract_urls(params["url"])
-
-    _run_scan(SitemapScan, scan_id, work)
-
-
-@huey.task()
-def run_internal_links_scan(scan_id):
-    from .models import InternalLinksScan
-    from .scrapers.internal_links import generate_graph
-
-    def work(params):
-        return generate_graph(params["url"], maximum=params.get("maximum", 200))
-
-    _run_scan(InternalLinksScan, scan_id, work)
 
 
 @huey.task()
@@ -143,25 +92,6 @@ def run_pagespeed_scan(scan_id):
 
 
 @huey.task()
-def run_summary_scan(scan_id):
-    """Not run on a separate Huey queue/consumer process, unlike the
-    original plan's "isolate to its own queue" aspiration - that needs a
-    second supervised process inside the worker container (or a 3rd
-    container), which isn't proportionate for a single-user self-hosted
-    app. The -w 4 thread pool (see docker-entrypoint.sh) still means one
-    slow/heavy summarize job only occupies one of four worker slots,
-    leaving the others free for lightweight jobs - real memory isolation
-    is the piece this doesn't have."""
-    from .models import SummaryScan
-    from .scrapers.summarizer import summarize
-
-    def work(params):
-        return summarize(params["text"])
-
-    _run_scan(SummaryScan, scan_id, work)
-
-
-@huey.task()
 def run_security_scan(scan_id):
     from .models import SecurityScan
     from .scrapers import security as security_scraper
@@ -175,3 +105,61 @@ def run_security_scan(scan_id):
         return result
 
     _run_scan(SecurityScan, scan_id, work)
+
+
+@huey.task()
+def run_site_crawl(scan_id):
+    """Not run on a separate Huey queue/consumer process for the same
+    reason the old per-page summarizer wasn't - see run_remaining_summaries
+    below. The -w 4 thread pool in docker-entrypoint.sh means one slow
+    crawl only occupies one of four worker slots."""
+    from .models import SiteCrawlScan
+    from .scrapers.crawl import run_crawl
+
+    def work(params):
+        return run_crawl(
+            params["start_url"],
+            params.get("max_pages", 50),
+            params.get("summarize_top_n", 10),
+        )
+
+    _run_scan(SiteCrawlScan, scan_id, work)
+
+
+@huey.task()
+def run_remaining_summaries(scan_id):
+    """Enrichment of an already-finished SiteCrawlScan, not a fresh
+    queued->running->finished lifecycle - the scan stays "finished"
+    throughout while this fills in summaries for pages that didn't make the
+    initial top-N cut. Commits after each page (not batched at the end) so
+    progress is visible on refresh during what can be a many-minute job."""
+    from sqlalchemy.orm.attributes import flag_modified
+
+    from .extensions import db
+    from .models import SiteCrawlScan
+    from .scrapers.page_text import extract_text
+    from .scrapers.summarizer import summarize
+
+    app = _get_app()
+    with app.app_context():
+        scan = db.session.get(SiteCrawlScan, scan_id)
+        if scan is None or scan.status != "finished":
+            return
+
+        pending = [
+            url
+            for url, analysis in scan.result["pages"].items()
+            if not analysis.get("summary")
+        ]
+
+        for url in pending:
+            try:
+                text = extract_text(url)
+                scan.result["pages"][url]["summary"] = summarize(text)["summary"]
+                scan.result["pages_summarized"] = (
+                    scan.result.get("pages_summarized", 0) + 1
+                )
+            except Exception as exc:
+                scan.result["pages"][url]["summary_error"] = str(exc)
+            flag_modified(scan, "result")
+            db.session.commit()

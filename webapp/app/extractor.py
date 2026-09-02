@@ -2,8 +2,8 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import login_required
 
 from .extensions import db
-from .jobs import run_extractor_scan, run_sitemap_scan
-from .models import ExtractorScan, SitemapScan
+from .jobs import run_extractor_scan
+from .models import ExtractorScan
 from .utils import get_owned_site_or_404
 
 bp = Blueprint("extractor", __name__, url_prefix="/sites/<int:site_id>")
@@ -53,42 +53,3 @@ def detail(site_id, scan_id):
     if scan is None or scan.site_id != site.id:
         abort(404)
     return render_template("extractor/detail.html", site=site, scan=scan)
-
-
-@bp.route("/sitemap", methods=["GET", "POST"])
-@login_required
-def sitemap_index(site_id):
-    site = get_owned_site_or_404(site_id)
-
-    if request.method == "POST":
-        url = request.form.get("url", "").strip()
-        if not url:
-            flash("A URL is required.", "error")
-            return redirect(url_for("extractor.sitemap_index", site_id=site.id))
-
-        scan = SitemapScan(site_id=site.id, params={"url": url}, status="queued")
-        db.session.add(scan)
-        db.session.commit()
-
-        run_sitemap_scan(scan.id)
-
-        return redirect(
-            url_for("extractor.sitemap_detail", site_id=site.id, scan_id=scan.id)
-        )
-
-    scans = (
-        SitemapScan.query.filter_by(site_id=site.id)
-        .order_by(SitemapScan.created_at.desc())
-        .all()
-    )
-    return render_template("sitemap/index.html", site=site, scans=scans)
-
-
-@bp.get("/sitemap/<int:scan_id>")
-@login_required
-def sitemap_detail(site_id, scan_id):
-    site = get_owned_site_or_404(site_id)
-    scan = db.session.get(SitemapScan, scan_id)
-    if scan is None or scan.site_id != site.id:
-        abort(404)
-    return render_template("sitemap/detail.html", site=site, scan=scan)

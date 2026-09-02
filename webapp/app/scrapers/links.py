@@ -8,9 +8,7 @@ CONCURRENCY = 20
 
 
 def find_all_links(url, max_links=MAX_LINKS_CHECKED):
-    soup = request_parse(url)
-    if soup is None:
-        return None
+    soup = request_parse(url, raise_errors=True)
 
     unique_links = []
     seen = set()

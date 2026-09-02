@@ -18,22 +18,18 @@ def create_app(config_object="config.Config"):
         return db.session.get(models.User, int(user_id))
 
     from .auth import bp as auth_bp
+    from .crawl import bp as crawl_bp
     from .extractor import bp as extractor_bp
-    from .internal_links import bp as internal_links_bp
-    from .keywords import bp as keywords_bp
     from .pagespeed import bp as pagespeed_bp
     from .security import bp as security_bp
     from .sites import bp as sites_bp
-    from .summarizer import bp as summarizer_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(sites_bp)
-    app.register_blueprint(keywords_bp)
     app.register_blueprint(extractor_bp)
-    app.register_blueprint(internal_links_bp)
+    app.register_blueprint(crawl_bp)
     app.register_blueprint(security_bp)
     app.register_blueprint(pagespeed_bp)
-    app.register_blueprint(summarizer_bp)
 
     @app.get("/")
     def index():

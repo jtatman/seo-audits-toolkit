@@ -9,10 +9,17 @@ torn down without touching the old stack.
 ## Status
 
 All planned features are ported: auth, site management (the "add a website
-to audit" flow the old dashboard never had), keyword extraction, page
-extractor (headers/images/links), sitemap crawling, internal link graphs,
-security scanning (passive headers + optional wapiti deep scan), PageSpeed
-Insights, and the text summarizer.
+to audit" flow the old dashboard never had), a unified **site crawl**
+(discovers pages via sitemap.xml or a link-crawl fallback, then extracts
+keywords, a summary for the top pages by link-degree, related-pages-by-topic,
+and AI-search-visibility checks for every page), a single-page **extractor**
+(headers/images/links for one URL), **security** scanning (passive headers +
+optional wapiti deep scan), and **PageSpeed Insights**.
+
+Keyword extraction and summarization are *not* standalone tools here - they
+only run against a site's own crawled content, not arbitrary pasted text.
+If you want a general-purpose keyword extractor or summarizer, use `yake`/
+`transformers` directly; this is an SEO tool.
 
 **PageSpeed Insights needs a `PSI_API_KEY`** set in `.env` (a Google Cloud
 API key - the API has zero free/anonymous quota) or every scan will fail

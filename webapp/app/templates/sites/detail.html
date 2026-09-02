@@ -6,23 +6,15 @@
 <p class="muted">{{ site.url }}{% if site.only_domain %} &middot; domain-restricted{% endif %}</p>
 
 <div class="card">
-    <a href="{{ url_for('keywords.index', site_id=site.id) }}">Keyword extraction</a>
-    <div class="muted">Pull the most relevant keywords out of a block of text (yake).</div>
+    <a href="{{ url_for('crawl.index', site_id=site.id) }}">Site crawl</a>
+    <div class="muted">Discovers this site's pages (sitemap or link crawl), extracts keywords and
+    summaries from each, maps how pages relate by topic (not just links), and checks AI-search
+    visibility signals (robots.txt AI-bot access, llms.txt, structured data, and more).</div>
 </div>
 
 <div class="card">
     <a href="{{ url_for('extractor.index', site_id=site.id) }}">Extractor</a>
     <div class="muted">Headers, images, and links from a single page.</div>
-</div>
-
-<div class="card">
-    <a href="{{ url_for('extractor.sitemap_index', site_id=site.id) }}">Sitemap</a>
-    <div class="muted">Every URL discoverable from this site's sitemap.</div>
-</div>
-
-<div class="card">
-    <a href="{{ url_for('internal_links.index', site_id=site.id) }}">Internal link graph</a>
-    <div class="muted">Crawl same-domain pages and visualize how they link to each other.</div>
 </div>
 
 <div class="card">
@@ -33,10 +25,5 @@
 <div class="card">
     <a href="{{ url_for('pagespeed.index', site_id=site.id) }}">PageSpeed Insights</a>
     <div class="muted">Lighthouse lab scores plus real-user field data, from Google's API.</div>
-</div>
-
-<div class="card">
-    <a href="{{ url_for('summarizer.index', site_id=site.id) }}">Summarizer</a>
-    <div class="muted">Summarize any block of text - useful for generating excerpts.</div>
 </div>
 {% endblock %}

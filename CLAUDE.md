@@ -342,6 +342,63 @@ code up to date. This is the running summary - full detail is in git history and
   one URL an actual user is guaranteed to hit first and the one this session's otherwise-thorough
   curl-driven verification kept skipping.
 
+- **Phase 7 (2026-09-02): unified site crawl, replacing standalone keywords/summarizer/sitemap/
+  internal-links pages.** User feedback after actually using it: (1) "everything fails except
+  pagespeed insights" - real-user testing against `unity-health.org` found every scraper that
+  called `requests.get` with no headers got a 403 from the site's WAF, which blocks Python's
+  default User-Agent as basic bot protection (confirmed live: 403 with no UA, 200 with a
+  browser-like one). Fixed with a shared `HEADERS` constant in `app/scrapers/http_tools.py`
+  applied everywhere; also made single-page fetch failures raise the real reason
+  (`request_parse(..., raise_errors=True)`) instead of a generic "could not fetch" with no
+  explanation, so this class of bug is self-diagnosable from the UI next time. (2) Keywords and
+  the summarizer were standalone "paste any text" pages - wrong for an SEO tool ("if we wanted a
+  summarizer or keyword creator from something else, we wouldn't be doing SEO, we'd just be using
+  those ML tools"). (3) The tool needed to help with AI-search visibility, not just traditional
+  SEO ("SEO/AI-SEO minimum").
+
+  A forked research pass grounded "AI-SEO" in what's actually real rather than inventing plausible
+  advice: the only peer-reviewed source is **"GEO: Generative Engine Optimization"** (Princeton/
+  Georgia Tech/Allen Institute, KDD 2024) - it measured that citing sources, adding quotations, and
+  adding statistics each produced a **30-40% lift in AI-answer citation visibility**. Everything
+  else commonly repeated in this space (FAQ-schema multipliers, E-E-A-T stats, freshness-window
+  numbers) comes from SEO-agency marketing blogs with no disclosed methodology. This directly
+  shaped the design: `app/scrapers/ai_seo.py`'s checks are binary facts, each labeled either
+  `MEASURED` (citing the GEO paper) or `UNVERIFIED` ("commonly recommended... not independently
+  measured") - deliberately **no fabricated composite "AI-SEO score."**
+
+  Two design decisions confirmed with the user via AskUserQuestion before building: summarization
+  stays capped (keywords run for every crawled page - fast; summaries only for the top N pages by
+  link-degree by default, ~55s/page on CPU, with a "Summarize remaining" bulk action for the rest)
+  rather than run on every page; and sitemap extraction + the internal-link crawler merge into one
+  "Site Crawl" feature (sitemap discovery first, falling back to a same-domain link crawl) rather
+  than staying separate. Full plan at `~/.claude/plans/async-cooking-globe.md`.
+
+  Removed: `app/keywords.py`, `app/summarizer.py`, `app/internal_links.py`, the sitemap routes in
+  `app/extractor.py`, and their `KeywordScan`/`SummaryScan`/`InternalLinksScan`/`SitemapScan`
+  models (old SQLite tables for these are just left behind - no Alembic in this app yet, harmless
+  orphaned tables). Added: `SiteCrawlScan` (one JSON blob per crawl: per-page keywords/summary/
+  AI-SEO signals, a related-pages-by-keyword-overlap table, the link graph, site-level robots.txt/
+  llms.txt checks), `app/scrapers/crawl.py` (the analysis engine - one fetch per page derives
+  links, keywords, and AI-SEO signals together, avoiding the old design's three separate re-fetches
+  of the same page), `app/scrapers/ai_seo.py`, and the `crawl` blueprint.
+
+  Live-testing this against `unity-health.org` caught two more real bugs before commit: the
+  homepage linked as both `https://x.org` and `https://x.org/` was crawled as two "different"
+  pages, showing up as a nonsensical 100%-keyword-overlap "related pair" with itself - fixed with
+  a `_normalize_url` helper (strip trailing slashes) applied everywhere a URL enters the crawl's
+  `seen`/`pages` sets. Also found `usp` (the sitemap-parsing library) doesn't send a browser
+  User-Agent internally either, hitting the same WAF-blocking class of issue as fix (1) above -
+  passed it a `requests.Session` with the same headers via `web_client=RequestsWebClient(session=...)`;
+  this particular site's sitemap paths still 403 even with that fix (its WAF may be blocking
+  sitemap-shaped paths more aggressively than a UA check alone can satisfy), but the link-crawl
+  fallback correctly kicks in and produces a full report regardless. Verified the `-w 4` worker
+  concurrency fix from Phase 6 actually matters in practice, not just in theory: kicked off a
+  10-page summarization batch, then submitted an unrelated extractor + security scan while it was
+  still running - both finished in under a second on a different worker thread rather than queuing
+  behind the multi-minute summarization job. Final full run: 15 pages discovered via link-crawl
+  fallback, 15 analyzed, 13 summarized (2 pages correctly failed with "no readable text found" -
+  a locations listing and a bare form page - surfaced honestly rather than silently skipped).
+
 ## Build & Test
 
 ```bash

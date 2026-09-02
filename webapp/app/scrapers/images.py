@@ -4,9 +4,7 @@ from .http_tools import request_parse
 
 
 def find_all_images(url):
-    soup = request_parse(url)
-    if soup is None:
-        return None
+    soup = request_parse(url, raise_errors=True)
 
     seen = set()
     images = []

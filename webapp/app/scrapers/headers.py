@@ -2,9 +2,7 @@ from .http_tools import request_parse
 
 
 def find_all_headers(url):
-    soup = request_parse(url)
-    if soup is None:
-        return None
+    soup = request_parse(url, raise_errors=True)
 
     result = {}
     for level in range(1, 7):

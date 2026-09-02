@@ -88,23 +88,9 @@ class ScanMixin:
         return db.relationship("Site")
 
 
-class KeywordScan(ScanMixin, db.Model):
-    """params: {text, language, ngram, number_keywords}"""
-
-
 class ExtractorScan(ScanMixin, db.Model):
     """headers/images/links extraction - params: {url, extractor_type}
     where extractor_type is HEADERS/IMAGES/LINKS."""
-
-
-class SitemapScan(ScanMixin, db.Model):
-    """params: {url}"""
-
-
-class InternalLinksScan(ScanMixin, db.Model):
-    """params: {url, maximum}. The old Django app's InternalLinks model had
-    no site scoping at all (global, visible to any authenticated user) -
-    ScanMixin fixes that here like every other feature."""
 
 
 class SecurityScan(ScanMixin, db.Model):
@@ -117,7 +103,29 @@ class PageSpeedScan(ScanMixin, db.Model):
     """params: {url, strategy}. strategy is "mobile" or "desktop"."""
 
 
-class SummaryScan(ScanMixin, db.Model):
-    """params: {text}. Heaviest job in the app (loads a ~1.6GB seq2seq
-    model on first use per worker process) - see jobs.py's docstring on
-    run_summary_scan for the isolation tradeoff this accepts."""
+class SiteCrawlScan(ScanMixin, db.Model):
+    """params: {start_url, max_pages, summarize_top_n}.
+
+    Replaces the old standalone KeywordScan/SummaryScan/SitemapScan/
+    InternalLinksScan - this is an SEO tool, so keyword extraction and
+    summarization only make sense analyzing a site's own crawled content,
+    not arbitrary pasted text. One crawl discovers pages (sitemap.xml if
+    present, else a same-domain link crawl), analyzes every page's own
+    on-page text (keywords always - fast; a summary only for the top
+    `summarize_top_n` pages by link-degree - ~55s/page on CPU, too slow to
+    run unconditionally on every page of a large site), computes which
+    pages relate to each other by keyword overlap (not just hyperlinks),
+    and checks AI-search-visibility signals (robots.txt AI-bot access,
+    llms.txt, structured data, byline, freshness, citations, FAQ format).
+
+    result shape:
+    {
+      "discovery_method": "sitemap" | "crawl",
+      "pages_discovered": int, "pages_analyzed": int, "pages_summarized": int,
+      "site_ai_seo": {"robots_txt": {bot: allowed_bool}, "llms_txt_present": bool},
+      "pages": {url: {"keywords": [...], "summary": str|null,
+                       "internal_links": [...], "ai_seo": {...}}},
+      "related_pages": [{"page_a", "page_b", "overlap_score", "shared_keywords"}],
+      "bokeh_item": {...}
+    }
+    """
