@@ -18,10 +18,12 @@ def create_app(config_object="config.Config"):
         return db.session.get(models.User, int(user_id))
 
     from .auth import bp as auth_bp
+    from .keywords import bp as keywords_bp
     from .sites import bp as sites_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(sites_bp)
+    app.register_blueprint(keywords_bp)
 
     @app.get("/healthz")
     def healthz():

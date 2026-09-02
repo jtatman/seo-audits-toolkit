@@ -218,6 +218,19 @@ code up to date. This is the running summary - full detail is in git history and
   walkthrough by the user, not just automated checks — direct response to this round's feedback that
   not seeing the real product sooner is what let the react-admin dashboard ship broken.
 
+  Keywords (yake) ported next, first real feature end-to-end: `KeywordScan` model (site-scoped,
+  the consistent `params`/`status`/`result` JSON shape from the plan), a `run_keyword_scan` Huey
+  task, and site-scoped create/list/detail routes+templates, linked from the site detail page.
+  Extracted the `get_owned_site_or_404` site-membership check into `app/utils.py` rather than
+  duplicate it per blueprint, since the plan calls for the same check in every remaining feature.
+  Verified via a full `docker compose build/up` round-trip (register → create site → submit text →
+  scan finishes → keywords render, sensible output) — and that verification caught a real
+  concurrency bug: `db.create_all()` inside `create_app()` ran once per gunicorn worker process,
+  racing on `CREATE TABLE` against the same SQLite file on first boot (`table keyword_scan already
+  exists`, worker failed to boot, gunicorn's arbiter recovered by respawning — silent in a health
+  check, only visible in the container logs). Fixed with gunicorn's `--preload` flag, which imports
+  the app once in the master process before forking workers, so `create_all()` runs exactly once.
+
 ## Build & Test
 
 ```bash

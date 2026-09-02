@@ -59,3 +59,27 @@ class SiteMembership(db.Model):
     site = db.relationship("Site", back_populates="memberships")
 
     __table_args__ = (db.UniqueConstraint("user_id", "site_id"),)
+
+
+class KeywordScan(db.Model):
+    """One yake keyword-extraction run against a block of text.
+
+    Consistent Scan shape used across every audit feature: params/result as
+    JSON blobs rather than per-feature columns, status tracked directly on
+    this row (no separate task_id/polling table) since the params dict is
+    passed straight into the job instead of being re-queried by id - avoids
+    the create-row-then-task-reads-it race condition the old Django app
+    worked around with a raw sleep(0.2).
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+    site_id = db.Column(db.Integer, db.ForeignKey("site.id"), nullable=False)
+    params = db.Column(db.JSON, nullable=False)
+    status = db.Column(db.String(20), default="queued", nullable=False)
+    result = db.Column(db.JSON, nullable=True)
+    error = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    started_at = db.Column(db.DateTime, nullable=True)
+    finished_at = db.Column(db.DateTime, nullable=True)
+
+    site = db.relationship("Site")

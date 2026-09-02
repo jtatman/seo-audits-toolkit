@@ -1,18 +1,11 @@
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from .extensions import db
 from .models import Site, SiteMembership
-from .utils import slugify
+from .utils import get_owned_site_or_404, slugify
 
 bp = Blueprint("sites", __name__, url_prefix="/sites")
-
-
-def _get_owned_site_or_404(site_id):
-    site = db.session.get(Site, site_id)
-    if site is None or current_user not in site.users:
-        abort(404)
-    return site
 
 
 @bp.get("/")
@@ -55,5 +48,5 @@ def create_site():
 @bp.get("/<int:site_id>")
 @login_required
 def detail(site_id):
-    site = _get_owned_site_or_404(site_id)
+    site = get_owned_site_or_404(site_id)
     return render_template("sites/detail.html", site=site)

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Keyword scan - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('keywords.index', site_id=site.id) }}">&larr; Keyword extraction</a></p>
+<h1>Keyword scan</h1>
+<p class="muted">Status: {{ scan.status }} &middot; started {{ scan.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</p>
+
+{% if scan.status == "finished" %}
+    <table>
+        <thead>
+            <tr><th>Keyword</th><th>Score (lower = more relevant)</th></tr>
+        </thead>
+        <tbody>
+            {% for kw in scan.result.keywords %}
+            <tr><td>{{ kw.keyword }}</td><td>{{ "%.4f"|format(kw.score) }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% elif scan.status == "failed" %}
+    <div class="flash flash-error">{{ scan.error }}</div>
+{% else %}
+    <p class="muted">Still processing - refresh to check again.</p>
+{% endif %}
+{% endblock %}
