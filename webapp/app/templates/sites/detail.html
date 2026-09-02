@@ -11,8 +11,18 @@
 </div>
 
 <div class="card">
-    <p class="muted">More audit features (link/sitemap extraction, internal link graphs,
-    security headers, PageSpeed Insights) land here as each is ported from the old Django
-    app - see the project plan.</p>
+    <a href="{{ url_for('extractor.index', site_id=site.id) }}">Extractor</a>
+    <div class="muted">Headers, images, and links from a single page.</div>
+</div>
+
+<div class="card">
+    <a href="{{ url_for('extractor.sitemap_index', site_id=site.id) }}">Sitemap</a>
+    <div class="muted">Every URL discoverable from this site's sitemap.</div>
+</div>
+
+<div class="card">
+    <p class="muted">More audit features (internal link graphs, security headers,
+    PageSpeed Insights) land here as each is ported from the old Django app - see the
+    project plan.</p>
 </div>
 {% endblock %}

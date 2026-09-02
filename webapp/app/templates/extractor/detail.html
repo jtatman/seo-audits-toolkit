@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Extractor scan - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('extractor.index', site_id=site.id) }}">&larr; Extractor</a></p>
+<h1>{{ scan.params.extractor_type.title() }} extraction</h1>
+<p class="muted">{{ scan.params.url }} &middot; {{ scan.status }}</p>
+
+{% if scan.status == "failed" %}
+    <div class="flash flash-error">{{ scan.error }}</div>
+{% elif scan.status != "finished" %}
+    <p class="muted">Still processing - refresh to check again.</p>
+{% elif scan.params.extractor_type == "HEADERS" %}
+    {% for level in range(1, 7) %}
+        {% set tag = "h" ~ level %}
+        {% if scan.result[tag] %}
+            <h3>{{ tag.upper() }} ({{ scan.result[tag]|length }})</h3>
+            <ul>{% for text in scan.result[tag] %}<li>{{ text }}</li>{% endfor %}</ul>
+        {% endif %}
+    {% endfor %}
+{% elif scan.params.extractor_type == "IMAGES" %}
+    <p class="muted">
+        {{ scan.result.summary.total }} images &middot;
+        {{ scan.result.summary.missing_alt }} missing alt text &middot;
+        {{ scan.result.summary.missing_title }} missing title &middot;
+        {{ scan.result.summary.duplicates }} duplicates
+    </p>
+    <table>
+        <thead><tr><th>Image</th><th>Alt</th><th>Title</th></tr></thead>
+        <tbody>
+            {% for img in scan.result.images %}
+            <tr><td>{{ img.src }}</td><td>{{ img.alt or "—" }}</td><td>{{ img.title or "—" }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% elif scan.params.extractor_type == "LINKS" %}
+    <p class="muted">
+        {{ scan.result.total_links }} unique links found, {{ scan.result.checked }} checked
+        {% if scan.result.truncated %}(truncated){% endif %}
+    </p>
+    {% for status, links in scan.result.by_status.items() %}
+        <h3>{{ status }} ({{ links|length }})</h3>
+        <ul>{% for link in links %}<li>{{ link }}</li>{% endfor %}</ul>
+    {% endfor %}
+{% endif %}
+{% endblock %}

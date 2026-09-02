@@ -231,6 +231,21 @@ code up to date. This is the running summary - full detail is in git history and
   check, only visible in the container logs). Fixed with gunicorn's `--preload` flag, which imports
   the app once in the master process before forking workers, so `create_all()` runs exactly once.
 
+  Extractor (headers/images/links) and sitemap ported next. Refactored the growing repetition
+  across `KeywordScan`/`ExtractorScan`/`SitemapScan` into a `ScanMixin` (shared columns via
+  SQLAlchemy `declared_attr`) and the matching job boilerplate into a `_run_scan(model, scan_id,
+  work)` helper in `jobs.py` — worth doing once three near-identical classes/tasks existed rather
+  than copy-pasting it three more times for the remaining features. `app/scrapers/` holds the
+  actual scraping logic ported from the old Django app's `extractor/src/*.py` (headers/images/links
+  walk the DOM via `bs4`+`lxml`, same as before); sitemap parsing swapped to
+  `ultimate-sitemap-parser` per the plan, replacing the old pandas+manual-XML-recursion approach.
+  Verified against real live sites, not just localhost fixtures: headers/images/links against
+  python.org, sitemap crawl against djangoproject.com (1001 URLs, handled that site's sitemap
+  variants 429-ing gracefully). That live testing caught a real performance problem the old Django
+  app also had: LINKS extraction checks every unique link's status sequentially — 135 links on
+  python.org's homepage took 37s serial. Fixed with a small `ThreadPoolExecutor` (20 concurrent
+  requests) in `app/scrapers/links.py`, down to ~2.4s for the same page.
+
 ## Build & Test
 
 ```bash

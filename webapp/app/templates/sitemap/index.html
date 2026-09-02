@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Sitemap - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('sites.detail', site_id=site.id) }}">&larr; {{ site.name }}</a></p>
+<h1>Sitemap extractor</h1>
+
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="url">Site homepage URL</label>
+    <input type="url" id="url" name="url" required placeholder="https://example.com" value="{{ site.url }}">
+    <button type="submit">Extract sitemap</button>
+</form>
+
+<h2>Past scans</h2>
+{% if scans %}
+    <table>
+        <thead><tr><th>URL</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            {% for scan in scans %}
+            <tr>
+                <td>{{ scan.params.url }}</td>
+                <td>{{ scan.status }}</td>
+                <td><a href="{{ url_for('extractor.sitemap_detail', site_id=site.id, scan_id=scan.id) }}">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="muted">No scans yet.</p>
+{% endif %}
+{% endblock %}

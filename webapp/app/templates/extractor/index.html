@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Extractor - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('sites.detail', site_id=site.id) }}">&larr; {{ site.name }}</a></p>
+<h1>Extractor</h1>
+<p class="muted">Pull headers, images, or links out of a single page.</p>
+
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="url">Page URL</label>
+    <input type="url" id="url" name="url" required placeholder="https://example.com/page">
+
+    <label for="extractor_type">What to extract</label>
+    <select id="extractor_type" name="extractor_type">
+        {% for t in extractor_types %}
+        <option value="{{ t }}">{{ t.title() }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Run extraction</button>
+</form>
+
+<h2>Past scans</h2>
+{% if scans %}
+    <table>
+        <thead><tr><th>URL</th><th>Type</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            {% for scan in scans %}
+            <tr>
+                <td>{{ scan.params.url }}</td>
+                <td>{{ scan.params.extractor_type }}</td>
+                <td>{{ scan.status }}</td>
+                <td><a href="{{ url_for('extractor.detail', site_id=site.id, scan_id=scan.id) }}">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="muted">No scans yet.</p>
+{% endif %}
+{% endblock %}

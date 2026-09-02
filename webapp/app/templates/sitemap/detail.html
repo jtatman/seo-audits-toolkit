@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Sitemap scan - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('extractor.sitemap_index', site_id=site.id) }}">&larr; Sitemap extractor</a></p>
+<h1>Sitemap scan</h1>
+<p class="muted">{{ scan.params.url }} &middot; {{ scan.status }}</p>
+
+{% if scan.status == "failed" %}
+    <div class="flash flash-error">{{ scan.error }}</div>
+{% elif scan.status != "finished" %}
+    <p class="muted">Still processing - refresh to check again.</p>
+{% else %}
+    <p class="muted">{{ scan.result.total }} URLs found.</p>
+    <table>
+        <thead><tr><th>URL</th><th>Last modified</th></tr></thead>
+        <tbody>
+            {% for u in scan.result.urls %}
+            <tr><td>{{ u.url }}</td><td>{{ u.last_modified or "—" }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

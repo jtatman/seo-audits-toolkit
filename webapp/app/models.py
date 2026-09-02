@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from flask_login import UserMixin
+from sqlalchemy.orm import declared_attr
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db
@@ -61,19 +62,15 @@ class SiteMembership(db.Model):
     __table_args__ = (db.UniqueConstraint("user_id", "site_id"),)
 
 
-class KeywordScan(db.Model):
-    """One yake keyword-extraction run against a block of text.
-
-    Consistent Scan shape used across every audit feature: params/result as
-    JSON blobs rather than per-feature columns, status tracked directly on
-    this row (no separate task_id/polling table) since the params dict is
-    passed straight into the job instead of being re-queried by id - avoids
-    the create-row-then-task-reads-it race condition the old Django app
-    worked around with a raw sleep(0.2).
-    """
+class ScanMixin:
+    """Consistent shape shared by every audit feature: params/result as JSON
+    blobs rather than per-feature columns, status tracked directly on this
+    row (no separate task_id/polling table) since the params dict is passed
+    straight into the job instead of being re-queried by id - avoids the
+    create-row-then-task-reads-it race condition the old Django app worked
+    around with a raw sleep(0.2)."""
 
     id = db.Column(db.Integer, primary_key=True)
-    site_id = db.Column(db.Integer, db.ForeignKey("site.id"), nullable=False)
     params = db.Column(db.JSON, nullable=False)
     status = db.Column(db.String(20), default="queued", nullable=False)
     result = db.Column(db.JSON, nullable=True)
@@ -82,4 +79,23 @@ class KeywordScan(db.Model):
     started_at = db.Column(db.DateTime, nullable=True)
     finished_at = db.Column(db.DateTime, nullable=True)
 
-    site = db.relationship("Site")
+    @declared_attr
+    def site_id(cls):
+        return db.Column(db.Integer, db.ForeignKey("site.id"), nullable=False)
+
+    @declared_attr
+    def site(cls):
+        return db.relationship("Site")
+
+
+class KeywordScan(ScanMixin, db.Model):
+    """params: {text, language, ngram, number_keywords}"""
+
+
+class ExtractorScan(ScanMixin, db.Model):
+    """headers/images/links extraction - params: {url, extractor_type}
+    where extractor_type is HEADERS/IMAGES/LINKS."""
+
+
+class SitemapScan(ScanMixin, db.Model):
+    """params: {url}"""

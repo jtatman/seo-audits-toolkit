@@ -5,3 +5,7 @@ Flask-WTF==1.3.0
 gunicorn==26.2.0
 huey==3.3.4
 yake==0.7.3
+beautifulsoup4==4.15.0
+lxml==6.1.2
+requests==2.34.2
+ultimate-sitemap-parser==1.8.1

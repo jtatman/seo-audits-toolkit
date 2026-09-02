@@ -21,6 +21,33 @@ def _get_app():
     return _app
 
 
+def _run_scan(model, scan_id, work):
+    """Shared queued -> running -> finished/failed state machine for every
+    Scan model. `work(params)` does the feature-specific part and returns
+    the JSON-serializable result dict."""
+    from .extensions import db
+
+    app = _get_app()
+    with app.app_context():
+        scan = db.session.get(model, scan_id)
+        if scan is None:
+            return
+
+        scan.status = "running"
+        scan.started_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+        try:
+            scan.result = work(scan.params)
+            scan.status = "finished"
+        except Exception as exc:
+            scan.status = "failed"
+            scan.error = str(exc)
+        finally:
+            scan.finished_at = datetime.now(timezone.utc)
+            db.session.commit()
+
+
 @huey.task()
 def ping():
     """Trivial round-trip job proving web -> queue -> worker wiring works."""
@@ -31,40 +58,57 @@ def ping():
 def run_keyword_scan(scan_id):
     import yake
 
-    from .extensions import db
     from .models import KeywordScan
 
-    app = _get_app()
-    with app.app_context():
-        scan = db.session.get(KeywordScan, scan_id)
-        if scan is None:
-            return
+    def work(params):
+        extractor = yake.KeywordExtractor(
+            lan=params.get("language", "en"),
+            n=params.get("ngram", 2),
+            top=params.get("number_keywords", 20),
+            dedupLim=0.8,
+            windowsSize=2,
+        )
+        keywords = extractor.extract_keywords(params["text"])
+        # yake scores are lower-is-more-relevant; cast off numpy's float64
+        # so this is plain JSON.
+        return {
+            "keywords": [
+                {"keyword": kw, "score": float(score)} for kw, score in keywords
+            ]
+        }
 
-        scan.status = "running"
-        scan.started_at = datetime.now(timezone.utc)
-        db.session.commit()
+    _run_scan(KeywordScan, scan_id, work)
 
-        try:
-            params = scan.params
-            extractor = yake.KeywordExtractor(
-                lan=params.get("language", "en"),
-                n=params.get("ngram", 2),
-                top=params.get("number_keywords", 20),
-                dedupLim=0.8,
-                windowsSize=2,
-            )
-            keywords = extractor.extract_keywords(params["text"])
-            # yake scores are lower-is-more-relevant; cast off numpy's
-            # float64 so this is plain JSON.
-            scan.result = {
-                "keywords": [
-                    {"keyword": kw, "score": float(score)} for kw, score in keywords
-                ]
-            }
-            scan.status = "finished"
-        except Exception as exc:
-            scan.status = "failed"
-            scan.error = str(exc)
-        finally:
-            scan.finished_at = datetime.now(timezone.utc)
-            db.session.commit()
+
+@huey.task()
+def run_extractor_scan(scan_id):
+    from .models import ExtractorScan
+    from .scrapers.headers import find_all_headers
+    from .scrapers.images import find_all_images
+    from .scrapers.links import find_all_links
+
+    scrapers = {
+        "HEADERS": find_all_headers,
+        "IMAGES": find_all_images,
+        "LINKS": find_all_links,
+    }
+
+    def work(params):
+        scraper = scrapers[params["extractor_type"]]
+        result = scraper(params["url"])
+        if result is None:
+            raise RuntimeError(f"Could not fetch {params['url']}")
+        return result
+
+    _run_scan(ExtractorScan, scan_id, work)
+
+
+@huey.task()
+def run_sitemap_scan(scan_id):
+    from .models import SitemapScan
+    from .scrapers.sitemap import extract_urls
+
+    def work(params):
+        return extract_urls(params["url"])
+
+    _run_scan(SitemapScan, scan_id, work)

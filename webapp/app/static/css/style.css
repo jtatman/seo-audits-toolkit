@@ -56,7 +56,7 @@ form.inline { display: inline; }
 
 label { display: block; margin-top: 1rem; font-weight: 600; }
 
-input[type=text], input[type=email], input[type=password], input[type=url], textarea {
+input[type=text], input[type=email], input[type=password], input[type=url], textarea, select {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid var(--border);
