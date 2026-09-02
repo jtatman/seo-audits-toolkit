@@ -281,6 +281,22 @@ code up to date. This is the running summary - full detail is in git history and
   internal address over the `internal` Docker network, correctly found the container has no CSP/
   X-Frame-Options/X-Content-Type-Options - true findings, this app doesn't set those yet either).
 
+  PageSpeed Insights ported next, replacing the local `lighthouse` CLI entirely per the plan.
+  `app/scrapers/pagespeed.py` calls the PSI v5 REST API directly with `requests` - one response
+  includes both Lighthouse lab category scores (`lighthouseResult.categories`) and real-user CrUX
+  field data (`loadingExperience.metrics`), covering the old app's separate Lighthouse-CLI-only
+  approach in a single call. **Not live-verified end-to-end** — unlike every other feature this
+  session, PSI v5 has zero anonymous quota (confirmed via a direct curl: 429 "Queries per day"
+  limit of 0 with no key) and no API key was available in this sandbox. Confirmed the exact response
+  schema via the API's own discovery document (`googleapis.com/discovery/v1/apis/pagespeedonline/v5/
+  rest`) rather than guessing, and verified the parsing logic + detail template against a payload
+  shaped to that real schema (mocked `requests.get`, then a directly-inserted `finished` scan row
+  rendered correctly). Verified the actual failure path for real, though: with no `PSI_API_KEY` set,
+  a scan correctly fails with a clear "PSI_API_KEY is not set... see README.md" message rather than
+  crashing. **User needs to set a real `PSI_API_KEY` in `webapp/.env` and click through this one
+  themselves** to confirm the live happy path - the one gap in this session's "verify against the
+  real running app" discipline, and it's a credential gap, not a shortcut taken.
+
 ## Build & Test
 
 ```bash

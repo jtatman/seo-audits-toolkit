@@ -126,6 +126,23 @@ def run_internal_links_scan(scan_id):
 
 
 @huey.task()
+def run_pagespeed_scan(scan_id):
+    from flask import current_app
+
+    from .models import PageSpeedScan
+    from .scrapers.pagespeed import run_pagespeed
+
+    def work(params):
+        return run_pagespeed(
+            params["url"],
+            api_key=current_app.config.get("PSI_API_KEY"),
+            strategy=params.get("strategy", "mobile"),
+        )
+
+    _run_scan(PageSpeedScan, scan_id, work)
+
+
+@huey.task()
 def run_security_scan(scan_id):
     from .models import SecurityScan
     from .scrapers import security as security_scraper

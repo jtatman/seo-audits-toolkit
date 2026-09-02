@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}PageSpeed - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('sites.detail', site_id=site.id) }}">&larr; {{ site.name }}</a></p>
+<h1>PageSpeed Insights</h1>
+<p class="muted">Google's PageSpeed Insights API - Lighthouse lab scores plus real-user (CrUX)
+field data in one report.</p>
+
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="url">URL</label>
+    <input type="url" id="url" name="url" required value="{{ site.url }}">
+
+    <label for="strategy">Strategy</label>
+    <select id="strategy" name="strategy">
+        <option value="mobile">Mobile</option>
+        <option value="desktop">Desktop</option>
+    </select>
+
+    <button type="submit">Run PageSpeed scan</button>
+</form>
+
+<h2>Past scans</h2>
+{% if scans %}
+    <table>
+        <thead><tr><th>URL</th><th>Strategy</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+            {% for scan in scans %}
+            <tr>
+                <td>{{ scan.params.url }}</td>
+                <td>{{ scan.params.strategy }}</td>
+                <td>{{ scan.status }}</td>
+                <td><a href="{{ url_for('pagespeed.detail', site_id=site.id, scan_id=scan.id) }}">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="muted">No scans yet.</p>
+{% endif %}
+{% endblock %}

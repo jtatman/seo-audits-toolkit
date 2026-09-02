@@ -111,3 +111,7 @@ class SecurityScan(ScanMixin, db.Model):
     """params: {url, deep_scan}. Passive header check always runs; deep_scan
     additionally runs wapiti's active vulnerability probes (result gets a
     "wapiti" key when that ran)."""
+
+
+class PageSpeedScan(ScanMixin, db.Model):
+    """params: {url, strategy}. strategy is "mobile" or "desktop"."""

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}PageSpeed scan - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('pagespeed.index', site_id=site.id) }}">&larr; PageSpeed Insights</a></p>
+<h1>PageSpeed Insights</h1>
+<p class="muted">{{ scan.params.url }} &middot; {{ scan.params.strategy }} &middot; {{ scan.status }}</p>
+
+{% if scan.status == "failed" %}
+    <div class="flash flash-error">{{ scan.error }}</div>
+{% elif scan.status != "finished" %}
+    <p class="muted">Still processing - refresh to check again.</p>
+{% else %}
+    <h2>Lab scores (Lighthouse)</h2>
+    <table>
+        <thead><tr><th>Category</th><th>Score</th></tr></thead>
+        <tbody>
+            {% for cat, score in scan.result.scores.items() %}
+            <tr><td>{{ cat }}</td><td>{{ score if score is not none else "—" }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if scan.result.field_data %}
+        <h2>Field data (real users, CrUX)</h2>
+        <p class="muted">Overall: {{ scan.result.field_data.overall_category or "—" }}</p>
+        <table>
+            <thead><tr><th>Metric</th><th>Percentile</th><th>Category</th></tr></thead>
+            <tbody>
+                {% for name, metric in scan.result.field_data.metrics.items() %}
+                <tr><td>{{ name }}</td><td>{{ metric.percentile }}</td><td>{{ metric.category }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">No CrUX field data available for this URL (not enough real-world traffic
+        for Google to have collected data).</p>
+    {% endif %}
+{% endif %}
+{% endblock %}

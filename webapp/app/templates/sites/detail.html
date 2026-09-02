@@ -31,7 +31,12 @@
 </div>
 
 <div class="card">
-    <p class="muted">More audit features (PageSpeed Insights, summarizer) land here as each is
-    ported from the old Django app - see the project plan.</p>
+    <a href="{{ url_for('pagespeed.index', site_id=site.id) }}">PageSpeed Insights</a>
+    <div class="muted">Lighthouse lab scores plus real-user field data, from Google's API.</div>
+</div>
+
+<div class="card">
+    <p class="muted">More audit features (the text summarizer) land here as each is ported
+    from the old Django app - see the project plan.</p>
 </div>
 {% endblock %}
