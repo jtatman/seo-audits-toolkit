@@ -3,115 +3,89 @@
 {% block content %}
 <p><a href="{{ url_for('crawl.index', site_id=site.id) }}">&larr; Site crawl</a></p>
 <h1>Site crawl</h1>
-<p class="muted">{{ scan.params.start_url }} &middot; {{ scan.status }}</p>
+<p class="muted">{{ scan.params.start_url }}</p>
 
 {% if scan.status == "failed" %}
     <div class="flash flash-error">{{ scan.error }}</div>
-{% elif scan.status != "finished" %}
-    <p class="muted">Still crawling - refresh to check again. Large sites can take a while.</p>
-{% else %}
-    {% set r = scan.result %}
-    <p class="muted">
-        Discovered via {{ "sitemap.xml" if r.discovery_method == "sitemap" else "link crawl" }}
-        &middot; {{ r.pages_discovered }} pages discovered, {{ r.pages_analyzed }} analyzed,
-        {{ r.pages_summarized }} summarized
-    </p>
+{% endif %}
 
-    {% if r.pages_summarized < r.pages_analyzed %}
-    <form method="post" action="{{ url_for('crawl.summarize_remaining', site_id=site.id, scan_id=scan.id) }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit">Summarize remaining {{ r.pages_analyzed - r.pages_summarized }} pages</button>
-    </form>
-    {% endif %}
+{% set phase_order = ["discovering", "downloading"] %}
+{% if scan.params.run_keywords %}{% set _ = phase_order.append("extracting_keywords") %}{% endif %}
+{% if scan.params.run_summaries %}{% set _ = phase_order.append("summarizing") %}{% endif %}
+{% set _ = phase_order.append("done") %}
 
-    <h2>AI search visibility</h2>
-    <p class="muted">
-        llms.txt: {{ "present" if r.site_ai_seo.llms_txt_present else "not found" }}
-        (proposed convention, not confirmed adopted by any major AI vendor yet)
-    </p>
-    <table>
-        <thead><tr><th>Bot</th><th>Kind</th><th>Allowed by robots.txt</th></tr></thead>
-        <tbody>
-            {% for bot, info in r.site_ai_seo.robots_txt.items() %}
-            <tr>
-                <td>{{ bot }}</td>
-                <td>{{ info.kind }}</td>
-                <td>{{ "✓ allowed" if info.allowed else "✗ blocked" }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<table>
+    <thead><tr><th>Phase</th><th>Progress</th><th>Status</th></tr></thead>
+    <tbody>
+        <tr>
+            <td>Discovery</td>
+            <td>{{ scan.pages_discovered }} pages found{% if scan.discovery_method %} (via {{ "sitemap.xml" if scan.discovery_method == "sitemap" else "link crawl" }}){% endif %}</td>
+            <td>{{ "done" if scan.phase != "discovering" or scan.status != "running" else "in progress" }}</td>
+        </tr>
+        <tr>
+            <td>Download &amp; AI-SEO signals</td>
+            <td>{{ scan.pages_downloaded }} / {{ scan.pages_discovered }}</td>
+            <td>
+                {% if scan.phase == "discovering" %}pending
+                {% elif scan.phase == "downloading" and scan.status == "running" %}in progress
+                {% else %}done{% endif %}
+            </td>
+        </tr>
+        {% if scan.params.run_keywords %}
+        <tr>
+            <td>Keyword extraction</td>
+            <td>{{ scan.pages_keyword_extracted }} / {{ scan.pages_downloaded }}</td>
+            <td>
+                {% if phase_order.index(scan.phase) < phase_order.index("extracting_keywords") %}pending
+                {% elif scan.phase == "extracting_keywords" and scan.status == "running" %}in progress
+                {% else %}done{% endif %}
+            </td>
+        </tr>
+        {% endif %}
+        {% if scan.params.run_summaries %}
+        <tr>
+            <td>Summarization</td>
+            <td>{{ scan.pages_summarized }} / {{ scan.params.summarize_top_n }} requested</td>
+            <td>
+                {% if phase_order.index(scan.phase) < phase_order.index("summarizing") %}pending
+                {% elif scan.phase == "summarizing" and scan.status == "running" %}in progress
+                {% else %}done{% endif %}
+            </td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
 
-    <h2>Link graph</h2>
-    <div id="site-crawl-graph"></div>
-    <script src="{{ url_for('static', filename='js/bokeh/bokeh.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bokeh/bokeh-tables.min.js') }}"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            Bokeh.embed.embed_item({{ r.bokeh_item | tojson }});
-        });
-    </script>
+{% if scan.status == "running" %}
+    <p class="muted"><a href="{{ url_for('crawl.detail', site_id=site.id, scan_id=scan.id) }}">Refresh</a> to check progress.</p>
+{% endif %}
 
-    <h2>Related pages by topic</h2>
-    <p class="muted">Pages that share keywords, whether or not they link to each other - useful
-    for spotting pages competing for the same topic.</p>
-    {% if r.related_pages %}
-        <table>
-            <thead><tr><th>Page A</th><th>Page B</th><th>Overlap</th><th>Shared keywords</th></tr></thead>
-            <tbody>
-                {% for pair in r.related_pages %}
-                <tr>
-                    <td>{{ pair.page_a }}</td>
-                    <td>{{ pair.page_b }}</td>
-                    <td>{{ "%.0f"|format(pair.overlap_score * 100) }}%</td>
-                    <td>{{ pair.shared_keywords | join(", ") }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p class="muted">No strongly overlapping pages found.</p>
-    {% endif %}
+{% if scan.pages_downloaded > 0 %}
+<h2>Results</h2>
+<div class="card">
+    <a href="{{ url_for('crawl.pages', site_id=site.id, scan_id=scan.id) }}">Pages ({{ scan.pages|length }})</a>
+    <div class="muted">Every discovered page, with its own keywords/summary/AI-SEO signals.</div>
+</div>
+<div class="card">
+    <a href="{{ url_for('crawl.graph', site_id=site.id, scan_id=scan.id) }}">Link graph</a>
+    <div class="muted">How the site's pages link to each other.</div>
+</div>
+{% if scan.params.run_keywords %}
+<div class="card">
+    <a href="{{ url_for('crawl.related', site_id=site.id, scan_id=scan.id) }}">Related pages by topic</a>
+    <div class="muted">Pages that share keywords, whether or not they link to each other.</div>
+</div>
+{% endif %}
+<div class="card">
+    <a href="{{ url_for('crawl.ai_seo_overview', site_id=site.id, scan_id=scan.id) }}">AI search visibility</a>
+    <div class="muted">robots.txt AI-bot access, llms.txt, and aggregate page signals.</div>
+</div>
+{% endif %}
 
-    <h2>Pages</h2>
-    <table>
-        <thead>
-            <tr><th>URL</th><th>Top keywords</th><th>Summary</th><th>AI-SEO signals</th></tr>
-        </thead>
-        <tbody>
-            {% for url, page in r.pages.items() %}
-            <tr>
-                <td>{{ url }}</td>
-                <td>{{ page.keywords[:5] | map(attribute="keyword") | join(", ") }}</td>
-                <td>
-                    {% if page.summary %}
-                        {{ page.summary }}
-                    {% elif page.summary_error %}
-                        <span class="muted">summary failed: {{ page.summary_error }}</span>
-                    {% else %}
-                        <span class="muted">not summarized</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <span title="Commonly recommended by SEO practitioners; effect on AI-search visibility not independently verified">
-                        schema: {{ page.ai_seo.schema_types | join(", ") or "none" }}
-                    </span><br>
-                    <span title="Commonly recommended by SEO practitioners; effect on AI-search visibility not independently verified">
-                        byline: {{ "yes" if page.ai_seo.has_byline else "no" }}
-                    </span><br>
-                    <span title="Commonly recommended by SEO practitioners; effect on AI-search visibility not independently verified">
-                        freshness date: {{ page.ai_seo.freshness or "not found" }}
-                    </span><br>
-                    <span title="Measured: Princeton/Georgia Tech GEO study (KDD 2024) found this correlates with a 30-40% lift in AI-answer citation rate">
-                        citations/stats: {{ page.ai_seo.citations_count }}
-                    </span><br>
-                    <span title="Commonly recommended by SEO practitioners; effect on AI-search visibility not independently verified">
-                        FAQ format: {{ "yes" if page.ai_seo.faq_format else "no" }}
-                    </span>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% if scan.status == "finished" and scan.params.run_summaries and scan.pages_summarized < scan.pages_downloaded %}
+<form method="post" action="{{ url_for('crawl.summarize_remaining', site_id=site.id, scan_id=scan.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit">Summarize remaining pages</button>
+</form>
 {% endif %}
 {% endblock %}

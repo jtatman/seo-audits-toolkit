@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}AI search visibility - Site crawl - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('crawl.detail', site_id=site.id, scan_id=scan.id) }}">&larr; Site crawl</a></p>
+<h1>AI search visibility</h1>
+
+{% if scan.site_ai_seo %}
+    <h2>Site-level</h2>
+    <p class="muted">
+        llms.txt: {{ "present" if scan.site_ai_seo.llms_txt_present else "not found" }}
+        (proposed convention, not confirmed adopted by any major AI vendor yet)
+    </p>
+    <table>
+        <thead><tr><th>Bot</th><th>Kind</th><th>Allowed by robots.txt</th></tr></thead>
+        <tbody>
+            {% for bot, info in scan.site_ai_seo.robots_txt.items() %}
+            <tr>
+                <td>{{ bot }}</td>
+                <td>{{ info.kind }}</td>
+                <td>{{ "✓ allowed" if info.allowed else "✗ blocked" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Page-level (aggregate, {{ pages_checked }} pages checked)</h2>
+    <table>
+        <tbody>
+            <tr>
+                <td title="Commonly recommended by SEO practitioners; effect on AI-search visibility not independently verified">
+                    Pages with structured data (schema.org)
+                </td>
+                <td>{{ pages_with.schema }} / {{ pages_checked }}</td>
+            </tr>
+            <tr>
+                <td title="Commonly recommended by SEO practitioners; effect on AI-search visibility not independently verified">
+                    Pages with an author byline
+                </td>
+                <td>{{ pages_with.byline }} / {{ pages_checked }}</td>
+            </tr>
+            <tr>
+                <td title="Commonly recommended by SEO practitioners; effect on AI-search visibility not independently verified">
+                    Pages with a visible freshness date
+                </td>
+                <td>{{ pages_with.freshness }} / {{ pages_checked }}</td>
+            </tr>
+            <tr>
+                <td title="Commonly recommended by SEO practitioners; effect on AI-search visibility not independently verified">
+                    Pages in FAQ format
+                </td>
+                <td>{{ pages_with.faq_format }} / {{ pages_checked }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="muted">Citations/statistics counts are shown per-page (see each page's detail) -
+    the one signal here with actual published research behind it: Princeton/Georgia Tech's GEO
+    study (KDD 2024) found citing sources and adding statistics correlates with a 30-40% lift in
+    AI-answer citation rate. Everything else above is commonly recommended by SEO practitioners
+    but not independently measured for AI-search impact specifically.</p>
+{% else %}
+    <p class="muted">Not ready yet - refresh once discovery finishes.</p>
+{% endif %}
+{% endblock %}

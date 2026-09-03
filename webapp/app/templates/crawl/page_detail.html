@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ page.url }} - Site crawl - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('crawl.pages', site_id=site.id, scan_id=scan.id) }}">&larr; Pages</a></p>
+<h1>{{ page.url }}</h1>
+<p class="muted">Fetch: {{ page.fetch_status }}{% if page.fetch_error %} - {{ page.fetch_error }}{% endif %}</p>
+
+{% if page.fetch_status == "done" %}
+    <h2>Internal links</h2>
+    <p class="muted">{{ (page.internal_links or [])|length }} links to other pages on this site.</p>
+
+    <h2>AI search visibility</h2>
+    {% if page.ai_seo %}
+    <table>
+        <tbody>
+            <tr><td>Structured data</td><td>{{ page.ai_seo.schema_types|join(", ") or "none" }}</td></tr>
+            <tr><td>Author byline</td><td>{{ "yes" if page.ai_seo.has_byline else "no" }}</td></tr>
+            <tr><td>Freshness date</td><td>{{ page.ai_seo.freshness or "not found" }}</td></tr>
+            <tr><td>Citations / statistics</td><td>{{ page.ai_seo.citations_count }}</td></tr>
+            <tr><td>FAQ format</td><td>{{ "yes" if page.ai_seo.faq_format else "no" }}</td></tr>
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if scan.params.run_keywords %}
+    <h2>Keywords</h2>
+    {% if page.keywords_status == "done" %}
+        <table>
+            <thead><tr><th>Keyword</th><th>Relevance</th></tr></thead>
+            <tbody>
+                {% for kw in page.keywords %}
+                <tr><td>{{ kw.keyword }}</td><td>{{ "%.2f"|format(kw.score) }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% elif page.keywords_status == "failed" %}
+        <p class="muted">Failed: {{ page.keywords_error }}</p>
+    {% else %}
+        <p class="muted">{{ page.keywords_status }}</p>
+    {% endif %}
+    {% endif %}
+
+    {% if scan.params.run_summaries %}
+    <h2>Summary</h2>
+    {% if page.summary_status == "done" %}
+        <p>{{ page.summary }}</p>
+    {% elif page.summary_status == "failed" %}
+        <p class="muted">Failed: {{ page.summary_error }}</p>
+    {% else %}
+        <p class="muted">{{ page.summary_status }}</p>
+    {% endif %}
+    {% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Pages - Site crawl - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('crawl.detail', site_id=site.id, scan_id=scan.id) }}">&larr; Site crawl</a></p>
+<h1>Pages</h1>
+<p class="muted">{{ pagination.total }} pages found &middot; page {{ pagination.page }} of {{ pagination.pages or 1 }}</p>
+
+<table>
+    <thead>
+        <tr><th>URL</th><th>Fetch</th>{% if scan.params.run_keywords %}<th>Keywords</th>{% endif %}{% if scan.params.run_summaries %}<th>Summary</th>{% endif %}<th></th></tr>
+    </thead>
+    <tbody>
+        {% for page in pagination.items %}
+        <tr>
+            <td>{{ page.url }}</td>
+            <td>{{ page.fetch_status }}</td>
+            {% if scan.params.run_keywords %}<td>{{ page.keywords_status }}</td>{% endif %}
+            {% if scan.params.run_summaries %}<td>{{ page.summary_status }}</td>{% endif %}
+            <td><a href="{{ url_for('crawl.page_detail', site_id=site.id, scan_id=scan.id, page_id=page.id) }}">View</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p>
+    {% if pagination.has_prev %}
+        <a href="{{ url_for('crawl.pages', site_id=site.id, scan_id=scan.id, page=pagination.prev_num) }}">&larr; Previous</a>
+    {% endif %}
+    {% if pagination.has_prev and pagination.has_next %} &middot; {% endif %}
+    {% if pagination.has_next %}
+        <a href="{{ url_for('crawl.pages', site_id=site.id, scan_id=scan.id, page=pagination.next_num) }}">Next &rarr;</a>
+    {% endif %}
+</p>
+{% endblock %}

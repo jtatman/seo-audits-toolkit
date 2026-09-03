@@ -104,28 +104,71 @@ class PageSpeedScan(ScanMixin, db.Model):
 
 
 class SiteCrawlScan(ScanMixin, db.Model):
-    """params: {start_url, max_pages, summarize_top_n}.
+    """params: {start_url, max_pages, run_keywords, run_summaries, summarize_top_n}.
 
-    Replaces the old standalone KeywordScan/SummaryScan/SitemapScan/
-    InternalLinksScan - this is an SEO tool, so keyword extraction and
-    summarization only make sense analyzing a site's own crawled content,
-    not arbitrary pasted text. One crawl discovers pages (sitemap.xml if
-    present, else a same-domain link crawl), analyzes every page's own
-    on-page text (keywords always - fast; a summary only for the top
-    `summarize_top_n` pages by link-degree - ~55s/page on CPU, too slow to
-    run unconditionally on every page of a large site), computes which
-    pages relate to each other by keyword overlap (not just hyperlinks),
-    and checks AI-search-visibility signals (robots.txt AI-bot access,
-    llms.txt, structured data, byline, freshness, citations, FAQ format).
+    v0.2: replaces the old fused single-task crawl (one function call per
+    page doing fetch+keywords+AI-SEO together) with a phase-separated
+    pipeline - see jobs.py's run_discovery/run_content_download/
+    run_ai_seo_checks/run_keyword_extraction/run_summarization, each its
+    own Huey task, auto-chained. `result` (inherited from ScanMixin) is
+    unused here - per-page state lives on CrawledPage rows instead of one
+    JSON blob assembled at the end, which is what makes incremental
+    progress and per-page detail pages possible. Keyword extraction and
+    summarization are opt-in (run_keywords/run_summaries) - discovery +
+    download + AI-SEO checks + the link graph are the always-on baseline
+    "survey the site" behavior; the expensive ML-driven phases are extra.
 
-    result shape:
-    {
-      "discovery_method": "sitemap" | "crawl",
-      "pages_discovered": int, "pages_analyzed": int, "pages_summarized": int,
-      "site_ai_seo": {"robots_txt": {bot: allowed_bool}, "llms_txt_present": bool},
-      "pages": {url: {"keywords": [...], "summary": str|null,
-                       "internal_links": [...], "ai_seo": {...}}},
-      "related_pages": [{"page_a", "page_b", "overlap_score", "shared_keywords"}],
-      "bokeh_item": {...}
-    }
+    Keyword extraction uses KeyBERT, not yake - yake has a documented
+    O(k^2) pairwise-Levenshtein deduplication step (github.com/LIAAD/yake
+    issue #80) that hung a real crawl for 2h40+ minutes on an unusually
+    large page. KeyBERT's cost scales with candidate count, not pairwise
+    comparisons, and reuses the transformers/torch dependency already
+    accepted for the bert summarizer.
     """
+
+    phase = db.Column(db.String(30), default="discovering", nullable=False)
+    # discovering -> downloading -> checking_ai_seo
+    #   -> [extracting_keywords if run_keywords] -> [summarizing if run_summaries] -> done
+    discovery_method = db.Column(db.String(10), nullable=True)  # "sitemap" | "crawl"
+    pages_discovered = db.Column(db.Integer, default=0, nullable=False)
+    pages_downloaded = db.Column(db.Integer, default=0, nullable=False)
+    pages_keyword_extracted = db.Column(db.Integer, default=0, nullable=False)
+    pages_summarized = db.Column(db.Integer, default=0, nullable=False)
+    site_ai_seo = db.Column(db.JSON, nullable=True)
+    bokeh_item = db.Column(db.JSON, nullable=True)
+    related_pages = db.Column(db.JSON, nullable=True)
+
+    pages = db.relationship(
+        "CrawledPage", back_populates="scan", cascade="all, delete-orphan"
+    )
+
+
+class CrawledPage(db.Model):
+    """One row per page discovered by a SiteCrawlScan. Each phase's status
+    lives per-page (not nested in one JSON blob) so the UI can show
+    granular per-page, per-phase progress during a running crawl and give
+    every page its own detail view instead of one giant scrolling table."""
+
+    id = db.Column(db.Integer, primary_key=True)
+    scan_id = db.Column(
+        db.Integer, db.ForeignKey("site_crawl_scan.id"), nullable=False
+    )
+    url = db.Column(db.String(2048), nullable=False)
+
+    fetch_status = db.Column(db.String(20), default="pending", nullable=False)
+    # pending/done/failed/skipped - "skipped" means the URL returned
+    # non-HTML content (a PDF, image, etc.) and was deliberately not
+    # parsed - see NotHtmlContentError in scrapers/crawl.py.
+    fetch_error = db.Column(db.Text, nullable=True)
+    internal_links = db.Column(db.JSON, nullable=True)
+    ai_seo = db.Column(db.JSON, nullable=True)
+
+    keywords_status = db.Column(db.String(20), default="not_requested", nullable=False)
+    keywords = db.Column(db.JSON, nullable=True)
+    keywords_error = db.Column(db.Text, nullable=True)
+
+    summary_status = db.Column(db.String(20), default="not_requested", nullable=False)
+    summary = db.Column(db.Text, nullable=True)
+    summary_error = db.Column(db.Text, nullable=True)
+
+    scan = db.relationship("SiteCrawlScan", back_populates="pages")

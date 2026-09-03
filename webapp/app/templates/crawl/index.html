@@ -4,8 +4,9 @@
 <p><a href="{{ url_for('sites.detail', site_id=site.id) }}">&larr; {{ site.name }}</a></p>
 <h1>Site crawl</h1>
 <p class="muted">Discovers pages via sitemap.xml when present (falling back to a same-domain
-link crawl), then analyzes each one: keywords, a summary for the most-linked pages, how pages
-relate by topic, and AI-search visibility signals.</p>
+link crawl), maps how they link together, and checks AI-search visibility signals - all fast,
+and always included. Keyword extraction and page summaries are optional add-ons below, since
+they take real extra time.</p>
 
 <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -15,17 +16,31 @@ relate by topic, and AI-search visibility signals.</p>
     <label for="max_pages">Max pages</label>
     <input type="text" id="max_pages" name="max_pages" value="50" style="max-width: 8rem;">
 
+    <label>
+        <input type="checkbox" name="run_keywords" style="width: auto; display: inline-block; margin-top: 0;">
+        Extract keywords for every page (KeyBERT) - adds noticeable time on larger sites
+    </label>
+
+    <label>
+        <input type="checkbox" name="run_summaries" style="width: auto; display: inline-block; margin-top: 0;">
+        Generate summaries for the most-linked pages - slow (~1 minute per page on CPU)
+    </label>
+
+    <label for="summarize_top_n">Pages to summarize (if enabled above)</label>
+    <input type="text" id="summarize_top_n" name="summarize_top_n" value="10" style="max-width: 8rem;">
+
     <button type="submit">Crawl</button>
 </form>
 
 <h2>Past crawls</h2>
 {% if scans %}
     <table>
-        <thead><tr><th>URL</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>URL</th><th>Phase</th><th>Status</th><th></th></tr></thead>
         <tbody>
             {% for scan in scans %}
             <tr>
                 <td>{{ scan.params.start_url }}</td>
+                <td>{{ scan.phase }}</td>
                 <td>{{ scan.status }}</td>
                 <td><a href="{{ url_for('crawl.detail', site_id=site.id, scan_id=scan.id) }}">View</a></td>
             </tr>

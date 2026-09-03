@@ -15,6 +15,18 @@ case "$1" in
         # queued job (keyword extraction, extractor, etc.) for the whole
         # scan. SQLite's single-writer model still serializes the actual
         # commits, but the crawling/CPU work itself now runs concurrently.
+        #
+        # OMP_NUM_THREADS etc: without these, KeyBERT/sentence-transformers
+        # (native BLAS/torch code) segfaulted this process outright when
+        # running inside huey's multi-threaded worker model - reproduced
+        # directly, fixed directly. This is the standard, well-documented
+        # mitigation for PyTorch-under-a-threaded-server crashes: force
+        # single-threaded BLAS so its internal thread pool can't conflict
+        # with the threads huey itself is running.
+        export OMP_NUM_THREADS=1
+        export MKL_NUM_THREADS=1
+        export OPENBLAS_NUM_THREADS=1
+        export TOKENIZERS_PARALLELISM=false
         exec huey_consumer app.jobs.huey -w 4
         ;;
     shell)

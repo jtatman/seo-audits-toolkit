@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Related pages - Site crawl - {{ site.name }} - OSAT{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('crawl.detail', site_id=site.id, scan_id=scan.id) }}">&larr; Site crawl</a></p>
+<h1>Related pages by topic</h1>
+<p class="muted">Pages that share keywords, whether or not they link to each other - useful for
+spotting pages competing for the same topic.</p>
+
+{% if scan.related_pages %}
+    <table>
+        <thead><tr><th>Page A</th><th>Page B</th><th>Overlap</th><th>Shared keywords</th></tr></thead>
+        <tbody>
+            {% for pair in scan.related_pages %}
+            <tr>
+                <td>{{ pair.page_a }}</td>
+                <td>{{ pair.page_b }}</td>
+                <td>{{ "%.0f"|format(pair.overlap_score * 100) }}%</td>
+                <td>{{ pair.shared_keywords | join(", ") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="muted">Not ready yet, or no strongly overlapping pages found.</p>
+{% endif %}
+{% endblock %}

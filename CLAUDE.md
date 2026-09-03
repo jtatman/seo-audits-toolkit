@@ -399,6 +399,89 @@ code up to date. This is the running summary - full detail is in git history and
   fallback, 15 analyzed, 13 summarized (2 pages correctly failed with "no readable text found" -
   a locations listing and a bare form page - surfaced honestly rather than silently skipped).
 
+- **Phase 8 (2026-09-03): site crawl v0.2 - phase-separated pipeline, per-page data model, KeyBERT,
+  opt-in scope.** A real 100-page crawl against `unity-health.org` hung for 2h40+ minutes, pegged at
+  ~100% CPU with near-zero network activity - a genuine compute hang, not a slow site. Root cause:
+  `yake` has a documented O(k^2) pairwise-Levenshtein dedup step
+  ([GitHub issue #80](https://github.com/LIAAD/yake/issues/80), open/unfixed) that can blow up on a
+  page with an unusually large candidate-phrase count. User explicitly did not want the stuck job
+  killed while this was fixed - it kept running in the background throughout this phase, built and
+  verified entirely via a local venv (not the live containers) until the very end. **Mid-phase, that
+  stuck job itself started exhausting host memory and threatening the WSL instance** - the user
+  asked to stop it (`docker stop` on both containers), which took priority over the earlier
+  "don't touch it" instruction now that the tradeoff had changed; memory recovered from ~5GB
+  available back to 18GB immediately.
+
+  Full redesign per the user's explicit asks: (1) **phase separation** - discovery, content
+  download (+AI-SEO signals, which come free from the same fetch - kept as one phase rather than a
+  fake extra step, since giving it its own phase would mean fetching every page twice for no
+  benefit), keyword extraction, and summarization are now five independent Huey tasks
+  (`run_discovery`/`run_content_download`/`run_keyword_extraction`/`run_summarization`, plus
+  `run_remaining_summaries`), auto-chained by calling the next task at the end of the previous
+  one's body - not one fused function per page. (2) **Normalized per-page data model** - `SiteCrawlScan`'s
+  old giant JSON blob (assembled atomically at the end) is replaced by a `CrawledPage` table, one
+  row per discovered page with its own `fetch_status`/`keywords_status`/`summary_status`, committed
+  progressively as each phase processes it - this is what makes incremental UI, pagination, and
+  per-page detail pages possible at all. (3) **Multi-page UI** - the old single giant `crawl/detail.html`
+  is now an overview (live phase/progress indicator) linking to dedicated `pages` (paginated),
+  `pages/<id>` (per-page detail), `graph`, `related`, and `ai-seo` pages. (4) **Opt-in scope** -
+  keyword extraction and summarization are unchecked-by-default form checkboxes; discovery+download+
+  AI-SEO+the link graph are the always-on "survey the site" baseline. (5) **KeyBERT replaces yake** -
+  research (forked) found KeyBERT has no quadratic failure mode and reuses the `transformers`/`torch`
+  dependency already accepted for the summarizer; RAKE was the documented lighter fallback if
+  KeyBERT proved too slow (it didn't).
+
+  Three more real bugs found via live testing before this shipped, none of them hypothetical:
+  - **A segfault** (exit 139) in the huey worker process the first time `run_keyword_extraction`
+    actually ran under huey's multi-threaded worker model (`-w N`) - KeyBERT/sentence-transformers'
+    native BLAS/torch code crashed the whole process. Fixed with the standard, well-documented
+    mitigation: `OMP_NUM_THREADS=1`/`MKL_NUM_THREADS=1`/`OPENBLAS_NUM_THREADS=1`/
+    `TOKENIZERS_PARALLELISM=false` set in `docker-entrypoint.sh`'s `worker` case, forcing
+    single-threaded BLAS so its internal thread pool can't conflict with huey's own threads.
+  - **The thread-based per-page timeout doesn't actually work** - discovered while investigating why
+    the retried job was still stuck (no crash this time, but no progress either) after the BLAS fix:
+    `ThreadPoolExecutor.result(timeout=X)` never fired against one specific page, confirmed directly
+    by testing it in isolation. Root cause: that page was a **716KB PDF file being parsed as HTML** -
+    a `Content-Type: application/pdf` URL (a real "Notice of Privacy Practices" document, linked
+    like a normal page from the site) fed through BeautifulSoup produced 700KB+ of PDF-internal
+    binary noise (`xref stream`, `obj filter`, ...) as "page text". Embedding that much noise ran
+    long enough that the native call never yielded the GIL back to the *waiting* thread either, so
+    even the timeout couldn't fire - a fundamental limitation of thread-based timeouts against
+    GIL-holding native code, not a bug in the timeout logic itself. This is almost certainly what
+    actually triggered the original yake hang too, not just an oversized-but-normal page. Real fix:
+    `_fetch()` in `app/scrapers/crawl.py` now checks `Content-Type` before parsing anything as HTML,
+    raising `NotHtmlContentError` for non-HTML responses; callers mark those pages `fetch_status =
+    "skipped"` (a PDF isn't a *failure*, it's just not analyzable) rather than attempting to parse
+    them at all. A `MAX_KEYWORD_TEXT_LENGTH` cap (20k chars) was added on top as defense in depth,
+    matching the same "cap the input, don't try to out-run it" approach the bert summarizer already
+    uses via its tokenizer's `max_length` truncation.
+  - **A counter-drift idempotency bug**, found via the manual crash-recovery re-run itself:
+    `pages_keyword_extracted` read 24 against only 20 discovered pages, because re-invoking
+    `run_keyword_extraction` after the crash reprocessed pages already marked `"done"` from the
+    interrupted first attempt instead of skipping them. Fixed by filtering out already-`"done"`
+    pages before reprocessing and recomputing every progress counter from actual per-page DB state
+    (`sum(1 for p in scan.pages if p.X_status == "done")`) rather than incrementing it, so a
+    re-invocation after any future crash can't drift out of sync with what's actually true.
+    `run_discovery` got the same treatment (skip re-creating `CrawledPage` rows if the scan already
+    has any) - crash-then-manual-resume is now a real, exercised, correct code path, not just a
+    theoretical one.
+
+  A template bug (`phase_order.index("done")` raising `ValueError`, since `"done"` was never added
+  to that Jinja list - a 500 on the overview page the moment any crawl actually finished) was also
+  caught by finally letting a full run reach completion and looking at the result page, not just
+  the worker logs.
+
+  Verified end-to-end, fully fixed, against the same `unity-health.org` crawl that originally hung:
+  discovery (15s) + download (0.06s, crawl-path already had everything) + keyword extraction (24.6s
+  for 20 pages, including the PDF correctly skipped rather than crashing anything) + summarization
+  (91.7s for 5 pages) - **~2.2 minutes total**, versus never completing after 2h40+ minutes before.
+  Confirmed the PDF page shows `fetch_status: skipped` with a clear reason and contributes zero
+  garbage keywords. Walked every new page (overview, paginated pages list, a page detail with real
+  sensible keywords and AI-SEO signals, the link graph, related pages, AI-SEO overview) via curl
+  against a local dev server + huey consumer, not the live containers (stopped throughout, per the
+  user's requests). **Not yet deployed** - the live `osat-webapp`/`osat-webapp-worker` containers
+  remain stopped; redeploying (which will pick up this fix) is the user's call.
+
 ## Build & Test
 
 ```bash
