@@ -28,7 +28,7 @@ services:
     - ./shared/logs/server:/opt/app/logs
     container_name: ${NAMESPACE}-server
     ports:
-      - "8000:8000"
+      - "8001:8000"
     command: ["django"]
     depends_on:
     - worker
